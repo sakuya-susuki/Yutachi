@@ -1,0 +1,62 @@
+---
+// src/components/SiteStats.astro
+import { getCollection } from 'astro:content';
+
+// 1. 获取所有博客文章
+const allPosts = await getCollection('blog');
+
+// 2. 统计文章篇数
+const postCount = allPosts.length;
+
+// 3. 统计总字数
+function countWords(text: string) {
+  if (!text) return 0;
+  const cnChars = text.match(/[\u4e00-\u9fa5]/g) || [];
+  const enWords = text.replace(/[\u4e00-\u9fa5]/g, ' ').match(/[a-zA-Z0-9_\-]+/g) || [];
+  return cnChars.length + enWords.length;
+}
+
+const totalWords = allPosts.reduce((sum, post) => {
+  return sum + countWords(post.body || '');
+}, 0);
+
+const wordCountInWan = (totalWords / 10000).toFixed(1);
+---
+
+<!-- 组件的 HTML 结构 -->
+<div class="site-stats">
+  <span>{postCount}</span> 篇 · 
+  <span>{wordCountInWan}</span> 万字 · 
+  <span id="site-running-days">-</span> 天
+</div>
+
+<!-- 客户端脚本：计算建站天数 -->
+<script is:inline>
+  // 请在此处填写你实际的建站日期 (格式: YYYY-MM-DD)
+  const START_DATE = '2026-06-26'; 
+
+  function calculateDays() {
+    const start = new Date(START_DATE).getTime();
+    const now = new Date().getTime();
+    const difference = now - start;
+    const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+    
+    const element = document.getElementById('site-running-days');
+    if (element) {
+      element.innerText = days > 0 ? days : 0;
+    }
+  }
+
+  calculateDays();
+</script>
+
+<!-- 组件专用的局部样式 -->
+<style>
+  .site-stats {
+    color: var(--text-muted, #888);
+    font-style: italic;
+  }
+</style>
+```
+
+---

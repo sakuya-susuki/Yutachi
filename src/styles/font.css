@@ -1,0 +1,123 @@
+
+  a {
+      color: #eaf0f7; /* 替换为你想要的颜色 */
+      text-decoration: none; 
+      /* see */
+  }
+  
+  a:hover {
+      color: #5e4c4c;  
+  /* touch */
+  }
+
+.article-paragraph {
+    /* 字体基础 */
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    
+    /* 文本排版 */
+    line-height: 1.8;       /* 让行距宽松一些，便于阅读 */
+    letter-spacing: 0.5px;  /* 稍微增加一点字间距 */
+    color: #742d2d;         /* 使用深灰色而不是纯黑，减轻视觉疲劳 */
+    
+    /* 其他 */
+    margin-bottom: 20px;    /* 段落之间的间距 */
+    text-align: justify;    /* 两端对齐，边缘更整齐 */
+}
+
+.sayaka-link {
+  color: #ef6d69e0; /* 换成你想要的专属颜色，比如一种粉红色 */
+  font-weight: bold; /* （可选）加粗一点，让它更醒目 */
+}
+
+/* 也可以单独给它设置鼠标悬停颜色 */
+.sayaka-link:hover {
+  color: #d63031; 
+}
+/* 手机适配 */
+@media (max-width: 768px) {
+  
+  /* 1. 适当降低 Markdown 整体正文字号，使其在小屏上更精致 */
+  .markdown-body {
+    font-size: 0.98rem !important; 
+    line-height: 1.7 !important;
+  }
+
+  /* 2. 降低文章大标题字号（原先 2.2em 在手机上太大了，降到 1.6rem 左右） */
+  article header h1, 
+  .serif-font {
+    font-size: 1.6rem !important; 
+  }
+
+  /* 3. 降低文章内部的二级标题（h2）和三级标题（h3）字号 */
+  .markdown-body h1 {
+    font-size: 1.5rem !important;
+  }
+  .markdown-body h2 {
+    font-size: 1.35rem !important;
+  }
+  .markdown-body h3 {
+    font-size: 1.15rem !important;
+  }
+
+  /* 4. 缩短手机端段落之间的间距，避免空白过多 */
+  .markdown-body p {
+    margin-bottom: 1.2em !important;
+  }
+}
+
+/* 手机端高保真排版优化 (屏幕宽度小于 768px 时生效) */
+@media (max-width: 768px) {
+  
+  /* 1. 强制手机端 HTML 禁用系统自动放大，保持比例 */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* 2. 核心：强制收缩 Markdown 容器的基准字号 */
+  .markdown-body {
+    font-size: 14.5px !important;    /* 👈 完美复刻图 2 的正文字号大小 */
+    line-height: 1.65 !important;    /* 稍微紧凑的行高，更具实体书卷气 */
+    color: #333333 !important;       /* 深灰色，比纯黑更柔和 */
+  }
+
+  /* 3. 严格限制 Markdown 内部各级标题的手机端尺寸 */
+  .markdown-body h1 {
+    font-size: 1.5rem !important;    /* 约 22px */
+    margin-top: 1.6em !important;
+    margin-bottom: 0.8em !important;
+  }
+  
+  .markdown-body h2 {
+    font-size: 1.25rem !important;   /* 约 18px，对应图中的“现状”字号 */
+    margin-top: 1.5em !important;
+    margin-bottom: 0.6em !important;
+    font-weight: 600 !important;
+  }
+
+  .markdown-body h3 {
+    font-size: 1.1rem !important;    /* 约 16px */
+    margin-top: 1.2em !important;
+    margin-bottom: 0.5em !important;
+  }
+
+  /* 4. 优化手机端段落（P）和引用块（Blockquote）的间距 */
+  .markdown-body p {
+    margin-top: 0 !important;
+    margin-bottom: 1.1em !important; /* 适度紧凑的段落落差 */
+  }
+
+  /* 5. 缩小文章最顶部大标题和日期的尺寸 */
+  .post-title {
+    font-size: 1.65rem !important;   /* 文章最上方的大标题 */
+    line-height: 1.35 !important;
+  }
+
+  .post-time, 
+  .sub-title {
+    font-size: 0.75rem !important;   /* 日期与分类标签，缩减至 12px */
+  }
+}
+

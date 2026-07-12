@@ -1,0 +1,137 @@
+
+.footer {
+  width: 100%;
+  background-color: var(--bg-color, #121212);
+  border-top: 1px solid var(--border-color, #222);
+  padding: 60px 0 40px 0;
+  color: var(--text-muted, #858585);
+  font-size: 0.85rem;
+}
+
+/* 页脚内部限宽容器 */
+.footer-container {
+  max-width: 1000px;          /* 限制最大宽度与你文章的宽度对齐 */
+  margin: 0 auto;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+/* 分割细线 */
+.footer-line {
+  border: none;
+  height: 1px;
+  background-color: var(--border-color, #222);
+  margin: 40px 0;
+}
+
+/* 2. 【核心点】：双栏站点地图排版（左侧版权，右侧链接） */
+.footer-meta-grid {
+  display: flex;
+  justify-content: space-between; /* 关键：两端对齐，左侧放版权，右侧放链接组 */
+  align-items: flex-start;
+  flex-wrap: wrap;               /* 空间不足时自动换行 */
+  gap: 40px;
+}
+
+/* 左侧：品牌与版权 */
+.meta-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 220px;
+}
+
+.brand-logo {
+  font-size: 1.4rem;
+  color: var(--text-color, #fff);
+  margin: 0;
+  font-family: serif;
+}
+
+.brand-motto {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted, #858585);
+}
+
+.copyright {
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+.live-counter {
+  margin: 0;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 右侧：分类链接组（集中在右侧一角并排） */
+.meta-right-links {
+  display: flex;
+  gap: 60px;                  /* 各个链接列（关于、更多、联系）之间的横向距离 */
+}
+
+/* 每一个独立的链接列 */
+.link-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;                  /* 列内部上下链接的垂直距离 */
+}
+
+.link-group h4 {
+  margin: 0 0 4px 0;
+  font-size: 0.85rem;
+  color: var(--text-color, #fff);
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.link-group a {
+  color: var(--text-muted, #858585);
+  text-decoration: none;
+  font-size: 0.8rem;
+  transition: color 0.2s ease;
+}
+
+.link-group a:hover {
+  color: var(--text-color, #fff); /* 悬浮时高亮变白 */
+}
+
+/* 3. 底部最后一行（备案与合规，同样两端对齐） */
+.footer-compliance-row {
+  display: flex;
+  justify-content: space-between; /* 左右两端分布 */
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color, #222);
+  font-size: 0.75rem;
+}
+
+.footer-compliance-row a {
+  color: var(--text-muted, #858585);
+  text-decoration: none;
+}
+
+.footer-compliance-row a:hover {
+  color: var(--text-color, #fff);
+}
+
+@media (max-width: 768px) {
+  .footer-meta-grid {
+    flex-direction: column;    /* 手机端改回垂直排列 */
+    gap: 30px;
+  }
+  
+  .meta-right-links {
+    width: 100%;
+    justify-content: space-between; /* 手机端宽度占满，链接组平铺开 */
+    gap: 20px;
+  }
+  
+  .footer-compliance-row {
+    flex-direction: column;    /* 底部合规栏在手机端也堆叠 */
+    gap: 12px;
+  }
+}

@@ -1,0 +1,52 @@
+---
+// src/pages/blog/[...slug].astro
+import ScrollProgress from '../../components/ScrollProgress.astro';
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const blogEntries = await getCollection('blog');
+  return blogEntries.map(entry => ({
+    params: { slug: entry.id.replace(/\.md$/, '') }, 
+    props: { entry }
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+---
+
+<BaseLayout title={entry.data.title} description={entry.data.description}>
+  
+  <!-- 恢复原本清爽的单栏阅读容器，侧边栏现在完全悬浮，不挤占空间 -->
+  <div class="scroll-container" style="max-width: 700px; width: 100%; margin: 0 auto; padding: 80px 20px 40px 20px; box-sizing: border-box;">
+    <article>
+      <!-- 文章头部 -->
+      <header style="margin-bottom: 30px; display: flex; flex-direction: column; gap: 10px;">
+        <span class="sub-title" style="font-size: 0.8em; color: var(--accent-color, #d33a50); letter-spacing: 2px;">
+          | {entry.data.category || '文章'}
+        </span>
+        <h1 class="serif-font" style="font-size: 2.2em; margin: 0; line-height: 1.4; font-weight: 400;">
+          {entry.data.title}
+        </h1>
+        <time style="color: var(--text-muted, #858585); font-size: 0.9em;">
+          | {entry.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+        </time>
+      </header>
+
+      <hr style="border: none; height: 1px; background-color: var(--border-color, #eef0f2); margin-bottom: 40px;" />
+
+      <!-- 正文渲染 -->
+      <div class="markdown-body serif-font" style="line-height: 1.8; font-size: 1.05em;">
+        <Content />
+      </div>
+    </article>
+  </div>
+
+  <!-- 【核心修改】：将文章的标题数据传给进度条组件 -->
+  <ScrollProgress headings={headings} />
+
+</BaseLayout>
+```
+
+---

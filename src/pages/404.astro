@@ -1,0 +1,92 @@
+---
+// src/pages/404.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="404 - 迷失森林">
+  <div class="not-found-container">
+    
+    <!-- 404 数字大字 -->
+    <h1 class="error-code serif-font">404</h1>
+    
+    <!-- 中文提示 -->
+    <p class="error-title serif-font">好大的雨，等一会吧。</p>
+    
+    <!-- 英文副标 (使用倾斜罗马体) -->
+    <p class="error-subtitle italic-text">The page you are looking for does not exist.</p>
+    
+    <!-- 动态返回按钮 -->
+    <a href="/" class="back-home-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      回到洋馆
+    </a>
+
+  </div>
+</BaseLayout>
+
+<style>
+  .not-found-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 65vh; /* 占据屏幕大部分高度使其居中 */
+    text-align: center;
+    gap: 15px;
+    padding: 0 20px;
+    user-select: none;
+  }
+
+  /* 404 故障数字样式 */
+  .error-code {
+    font-size: 8rem;
+    margin: 0;
+    color: var(--accent-color);
+    letter-spacing: 8px;
+    line-height: 1;
+    /* 加入一点微光阴影效果 */
+    text-shadow: 0 4px 20px rgba(244, 63, 94, 0.2); 
+  }
+
+  .error-title {
+    font-size: 1.3rem;
+    color: var(--text-color);
+    margin: 10px 0 0 0;
+    font-weight: 500;
+  }
+
+  .error-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin: 0;
+    letter-spacing: 1px;
+  }
+
+  /* 返回主页按钮 */
+  .back-home-btn {
+    margin-top: 40px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    background: rgba(128, 128, 128, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 30px; /* 圆角按钮 */
+    font-size: 0.9rem;
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  .back-home-btn:hover {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: #fff;
+    transform: translateY(-2px); /* 悬浮时微微上浮 */
+    box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3); /* 悬浮发光 */
+  }
+</style>
+

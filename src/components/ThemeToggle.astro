@@ -1,0 +1,136 @@
+<!-- src/components/ThemeToggle.astro -->
+<button id="theme-toggle-btn" class="theme-toggle" aria-label="切换主题">
+  <!-- 太阳图标 -->
+  <svg class="sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="5"></circle>
+    <line x1="12" y1="1" x2="12" y2="3"></line>
+    <line x1="12" y1="21" x2="12" y2="23"></line>
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+    <line x1="1" y1="12" x2="3" y2="12"></line>
+    <line x1="21" y1="12" x2="23" y2="12"></line>
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+  </svg>
+  <!-- 月亮图标 -->
+  <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+  </svg>
+</button>
+
+<script>
+  const setupTheme = () => {
+    const btn = document.getElementById('theme-toggle-btn');
+    if (!btn) return;
+
+    // 获取并设置当前存储的主题，默认跟随系统
+    const getTheme = () => {
+      if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
+        return localStorage.getItem('theme');
+      }
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    };
+
+    // 网页初次加载时设定属性
+    document.documentElement.setAttribute('data-theme', getTheme() || 'light');
+
+    // 核心切换逻辑
+    const toggleTheme = (event: MouseEvent) => {
+      const el = document.documentElement;
+      const isDark = el.getAttribute('data-theme') === 'dark';
+      const nextTheme = isDark ? 'light' : 'dark';
+
+      // 1. 判断浏览器是否支持现代 View Transition API，以及用户是否没有开启“减少动画限制”
+      const isTransition = document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // 如果不支持 View Transition，直接走优雅的 CSS 变量渐变平滑过渡 (我们在第一步里写的)
+      if (!isTransition) {
+        el.setAttribute('data-theme', nextTheme);
+        localStorage.setItem('theme', nextTheme);
+        return;
+      }
+
+      // 2. 炫酷的高阶“圆形水波纹扩散”过渡效果
+      const x = event.clientX;
+      const y = event.clientY;
+      const endRadius = Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y)
+      );
+
+      // 启动视图过渡
+      const transition = document.startViewTransition(() => {
+        el.setAttribute('data-theme', nextTheme);
+        localStorage.setItem('theme', nextTheme);
+      });
+
+      // 注册扩散动画路径
+      transition.ready.then(() => {
+        const clipPath = [
+          `circle(0px at ${x}px ${y}px)`,
+          `circle(${endRadius}px at ${x}px ${y}px)`
+        ];
+
+        el.animate(
+          {
+            // 如果是切换到黑暗模式，反向扩散，效果更震撼
+            clipPath: nextTheme === 'dark' ? [...clipPath].reverse() : clipPath
+          },
+          {
+            duration: 400,
+            easing: 'ease-out',
+            // 指定对哪个图层应用剪切路径，使日夜翻转极其平滑
+            pseudoElement: nextTheme === 'dark' ? '::view-transition-old(root)' : '::view-transition-new(root)'
+          }
+        );
+      });
+    };
+
+    btn.addEventListener('click', toggleTheme);
+  };
+
+  setupTheme();
+  document.addEventListener('astro:after-swap', setupTheme);
+</script>
+
+<style>
+  /* 按钮通用精致样式 */
+  .theme-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 50%;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, color 0.2s;
+  }
+
+  .theme-toggle:hover {
+    background-color: rgba(128, 128, 128, 0.08);
+    color: var(--text-color);
+  }
+
+  /* 图标显隐控制 */
+  .sun { display: block; }
+  .moon { display: none; }
+
+  :global([data-theme="dark"]) .sun { display: none; }
+  :global([data-theme="dark"]) .moon { display: block; }
+</style>
+
+<!-- 核心特效配套样式：禁用默认的整页闪烁，换成圆形波纹裁剪 -->
+<style is:global>
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+  ::view-transition-old(root) { z-index: 1; }
+  ::view-transition-new(root) { z-index: 9999; }
+
+  [data-theme="dark"]::view-transition-old(root) { z-index: 9999; }
+  [data-theme="dark"]::view-transition-new(root) { z-index: 1; }
+</style>

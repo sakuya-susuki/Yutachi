@@ -1,0 +1,582 @@
+---
+// src/layouts/BaseLayout.astro
+const { title = "Yutachi", description = "台官忽奏文昌现" } = Astro.props;
+// 获取当前网页的路径
+const currentPath = Astro.url.pathname;
+// 判断用户是否正处于首页
+const isHome = currentPath === '/' || currentPath === '/index.html';
+
+// 引入自定义 CSS
+import ScrollProgress from '../components/ScrollProgress.astro';
+import '../styles/font.css';   
+import '../styles/more.css';  
+// 引入自定义 astro组件
+import ThemeToggle from '../components/ThemeToggle.astro';
+---
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <!-- 引入思源宋体 -->
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <!-- 1. 粒子背景 -->
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- 2. 顶部全局导航栏 -->
+    <header class="header">
+      <nav class="nav">
+        <div class="nav-left">·
+          <a href="/" class="logo">
+            <img src="/photo/avatar.jpg" alt="Logo" class="nav-avatar" />
+          </a>
+        </div>
+        
+        <div class="nav-center">
+          <a href={isHome ? '#' : '/'} class={isHome ? 'active' : ''}>首</a>
+          <a href="/page">文</a>
+          <a href="timeline">忆往昔</a>
+          <a href="Ksay">记</a>
+          <a href="thoughts">思</a>
+        </div>
+        
+        <!-- 右侧放置主题切换按钮 -->
+        <div class="nav-right">
+          <ThemeToggle />
+        </div>
+      </nav>
+    </header>
+
+    <!-- 3. 页面内容注入点 -->
+    <main>
+      <slot />
+    </main>
+
+    <!-- 4. 重构后的精致长卷轴页脚 (Footer) -->
+    <footer class="footer">
+      <div class="footer-container">
+        <!-- 4.1 互动呼吁区域 -->
+        <div class="footer-action-zone">
+          <div class="action-title serif-font">
+            <span id="dynamic-greeting">仲夏蝉鸣</span> 
+            <span class="action-title serif-font">欢迎来信</span>
+            <span class="pink-dot">●</span>
+          </div>
+          
+          <div class="action-grid">
+            <div class="action-item">
+              <span class="action-label">不要悲伤</span>
+            </div>
+            <div class="vertical-divider"></div>
+            <div class="action-item">
+              <span class="action-label"></span>
+              <span class="action-sub italic-text">我们总会相遇</span>
+            </div>
+          </div>
+
+          <div class="action-sublinks">
+            <a href="#">一言</a> · <a href="/friends">朋友们</a> · <a href="#">书柜</a>
+          </div>
+        </div>
+
+        <hr class="footer-line" />
+
+        <!-- 4.2 底部站点地图区域 (双列) -->
+        <div class="footer-meta-grid">
+          <!-- 左侧：口号和版权 -->
+          <div class="meta-left">
+            <h3 class="brand-logo">Yutachi</h3>
+            <p class="brand-motto italic-text">.</p>
+            <p class="copyright">© 2024-2026 Powered by Sayaka & Astro</p>
+            <p class="live-counter"><span class="green-dot">●</span> 披阅数</p>
+          </div>
+
+          <!-- 右侧：分类链接列表 -->
+          <div class="meta-right-links">
+            <div class="link-group">
+              <h4>关于</h4>
+              <a href="Yutachi">关于本站此项目</a>
+              <a href="/blog/文章/about-me">关于我</a>
+            </div>
+            <div class="link-group">
+              <h4>更多</h4>
+              <a href="photos">照片廊</a>
+              <a href="friends">友链</a>
+
+            </div>
+            <div class="link-group">
+              <h4>联系</h4>
+              <a href="#">留言</a>
+              <a href="mailto:Bellflowere@proton.me">邮件 ↗</a>
+              <a href="https://github.com/sakuya-susuki">GitHub ↗</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4.3 底部最后一行 (合规栏已安全注释) -->
+        <div class="footer-compliance-row">
+          <div class="compliance-left">
+            <!-- <a href="#">RSS 订阅</a> · <a href="#">站点地图</a> · <a href="#">Light · System · Dark</a> -->
+          </div>
+          <div class="compliance-right">
+            <!-- <span>萌ICP备20236136号</span> -->
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- 粒子脚本 -->
+    <script>
+      const canvas = document.getElementById('particle-canvas') as HTMLCanvasElement;
+      if (canvas) {
+        const ctx = canvas.getContext('2d')!;
+        let width = (canvas.width = window.innerWidth);
+        let height = (canvas.height = window.innerHeight);
+
+        const particles: Particle[] = [];
+        const count = 50; 
+
+        class Particle {
+          x: number = 0;
+          y: number = 0;
+          size: number = 0;
+          speedX: number = 0;
+          speedY: number = 0;
+          alpha: number = 0;
+          color: string = '';
+
+          constructor() {
+            this.reset(true);
+          }
+
+          reset(init = false) {
+            this.x = Math.random() * width;
+            this.y = init ? Math.random() * height : -10;
+            this.size = Math.random() * 1.2 + 0.5;
+            this.speedX = (Math.random() - 0.5) * 0.1;
+            this.speedY = Math.random() * 0.15 + 0.08;
+            this.alpha = Math.random() * 0.35 + 0.08;
+            
+            const isPink = Math.random() > 0.8;
+            this.color = isPink 
+              ? `rgba(244, 63, 94, ${this.alpha})` 
+              : `rgba(226, 232, 240, ${this.alpha})`;
+          }
+
+          update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+
+            if (this.y > height + 10 || this.x < -10 || this.x > width + 10) {
+              this.reset();
+            }
+          }
+
+          draw() {
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        function init() {
+          for (let i = 0; i < count; i++) {
+            particles.push(new Particle());
+          }
+        }
+
+        function animate() {
+          ctx.clearRect(0, 0, width, height);
+          particles.forEach((p) => {
+            p.update();
+            p.draw();
+          });
+          requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+          width = canvas.width = window.innerWidth;
+          height = canvas.height = window.innerHeight;
+        });
+
+        init();
+        animate();
+      }
+    </script>
+
+    <!-- 动态时辰计算脚本 -->
+    <script is:inline>
+      function updateTimeGreeting() {
+        const greetingElement = document.getElementById('dynamic-greeting');
+        if (!greetingElement) return;
+
+        const hour = new Date().getHours();
+        let greeting = "仲夏蝉鸣";
+
+        if (hour >= 5 && hour < 9) {
+          greeting = "晨光熹微";
+        } else if (hour >= 9 && hour < 12) {
+          greeting = "微风和煦";
+        } else if (hour >= 12 && hour < 17) {
+          greeting = "暖阳午后";
+        } else if (hour >= 17 && hour < 19) {
+          greeting = "落日黄昏";
+        } else if (hour >= 19 && hour < 23) {
+          greeting = "万家灯火";
+        } else {
+          greeting = "夜深静谧";
+        }
+
+        greetingElement.innerText = greeting;
+      }
+      updateTimeGreeting();
+    </script>
+
+    <!-- 全局阅读进度条 -->
+
+  </body>
+</html>
+
+<!-- 全局 CSS 样式区 -->
+<style is:global>
+  :root {
+    /* 1. 默认白天模式下的配色 */
+    --bg-color: #ebe8dfef;          /* 温暖柔和的浅色米白背景 */
+    --text-color: #1e293b;        /* 深色字 */
+    --text-muted: #693e36;        /* 灰字 */
+    --accent-color: #e11d48;      /* 头像框 */
+    --border-color: rgba(52, 75, 83, 0.473); /* 极细浅色边框线 */
+  }
+
+  :root[data-theme="dark"] {
+    /* 2. 暗色黑夜模式下的配色 */
+    --bg-color: #121212;          /* 深灰背景 */
+    --text-color: #e2e8f0;        /* 浅灰字 */
+    --text-muted: #64748b;        /* 灰字 */
+    --accent-color: #52609e;      /* 头像框（暗色增强） */
+    --border-color: rgba(59, 143, 58, 0.116); /* 极细深色边框线 */
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--bg-color) !important;
+    color: var(--text-color) !important;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    position: relative;
+    overflow-x: hidden;
+
+    /* 开启 CSS 平滑色彩过渡 */
+    transition: 
+      background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+      color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* 让大块元素在切换日夜时也享受 0.4s 的平滑渐变 */
+  .header, .footer, a, span, h1, h2, h3, h4, p {
+    transition: 
+      background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+      color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* 思源宋体通用类 */
+  .serif-font {
+    font-family: "Noto Serif SC", "Source Han Serif SC", "STSong", "Songti SC", "SimSun", Georgia, serif !important;
+  }
+
+  /* 斜体美化 */
+  .italic-text {
+    font-style: italic;
+    font-family: Georgia, serif;
+  }
+
+  #particle-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* 顶部导航栏样式 */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+    background-color: var(--bg-color) !important;
+    opacity: 0.95 !important;
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+
+  .nav {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 15px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .nav-center {
+    display: flex;
+    gap: 20px;
+  }
+
+  .nav-center a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9em;
+    transition: color 0.2s;
+  }
+
+  .nav-center a:hover, .nav-center a.active {
+    color: var(--text-color);
+  }
+
+  .nav-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* ================== 页脚排版自适应样式 ================== */
+  .footer {
+    border-top: 1px solid var(--border-color) !important;
+    padding-top: 120px;
+    background-color: var(--bg-color) !important; /* 强制页脚底色跟随日夜主题 */
+  }
+
+  .footer-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px 60px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 60px;
+  }
+
+  /* 4.1 欢迎来信区块 */
+  .footer-action-zone {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 35px;
+  }
+
+  .action-title {
+    font-size: 1.8em;
+    letter-spacing: 0.15em;
+    color: var(--text-color) !important; /* 寄语文字颜色自适应 */
+    position: relative;
+  }
+
+  .pink-dot {
+    color: var(--accent-color);
+    font-size: 0.5em;
+    vertical-align: super;
+    margin-left: 5px;
+  }
+
+  .action-grid {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+  }
+
+  .action-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .action-label {
+    font-size: 0.85em;
+    color: var(--text-muted) !important;
+    letter-spacing: 0.1em;
+  }
+
+  .action-sub {
+    font-size: 0.95em;
+    color: var(--text-muted) !important;
+  }
+
+  .heart-icon {
+    color: var(--accent-color);
+  }
+
+  .vertical-divider {
+    height: 30px;
+    width: 1px;
+    background-color: var(--border-color);
+  }
+
+  .action-sublinks {
+    font-size: 0.85em;
+    color: var(--text-muted);
+  }
+
+  .action-sublinks a {
+    color: var(--text-muted) !important;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .action-sublinks a:hover {
+    color: var(--text-color) !important;
+  }
+
+  .footer-line {
+    border: none;
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 0;
+  }
+
+  /* 4.2 底部两端对齐排版 */
+  .footer-meta-grid {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 40px !important;
+  }
+
+  .meta-left {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .brand-logo {
+    font-size: 1.5em;
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .brand-motto {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    margin: 0;
+  }
+
+  .copyright {
+    font-size: 0.8em;
+/* © 2024-2026 Powered by Sayaka & Astro */
+    color: #343f4f;
+    margin: 5px 0 0 0;
+  }
+
+  .live-counter {
+    font-size: 0.8em;
+/* 披阅数 */
+    color: #2a4469a9;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .green-dot {
+
+    color: #00ffaa;
+    font-size: 0.7em;
+  }
+
+  /* 右侧分类并排链接组 */
+  .meta-right-links {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 60px !important;
+  }
+
+  .link-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .link-group h4 {
+    font-size: 0.85em;
+    margin: 0;
+    /* 关于 */
+    color: #31578f92;
+    font-weight: 600;
+  }
+
+  .link-group a {
+    font-size: 0.85em;
+    color: var(--text-muted) !important;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .link-group a:hover {
+    color: var(--text-color) !important;
+  }
+
+  /* 4.3 最底部自适应合规行 */
+  .footer-compliance-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center;
+    font-size: 0.8em;
+    color: #475569;
+  }
+
+  /* 自定义滚动条 */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bg-color);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    /* 拉条 */
+    background: #53444456;
+  }
+
+  /* 移动端窄屏折叠自适应 */
+  @media (max-width: 768px) {
+    .footer-meta-grid {
+      flex-direction: column !important;
+      gap: 30px !important;
+    }
+    .meta-right-links {
+      width: 100% !important;
+      justify-content: space-between !important;
+      gap: 20px !important;
+    }
+    .footer-compliance-row {
+      flex-direction: column !important;
+      gap: 12px !important;
+      align-items: flex-start !important;
+    }
+  }
+</style>

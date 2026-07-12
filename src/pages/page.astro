@@ -1,0 +1,683 @@
+---
+// src/pages/page.astro
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// 1. 获取所有的 Markdown 内容
+const rawPosts = await getCollection('blog');
+
+// 2. 自动读取文件夹名字作为分类
+rawPosts.forEach(post => {
+  const pathParts = post.id.split('/'); 
+  const folderName = pathParts.length > 1 ? pathParts[0] : '文章'; 
+  post.data.category = post.data.category || folderName;
+});
+
+//  3. 核心拦截：只保留分类为“文章”的内容！(过滤掉“记”和“思”)
+const articlePosts = rawPosts.filter(post => post.data.category === '文章');
+
+// 4. 按发布日期从新到旧排序 (只排被过滤后的文章)
+const sortedPosts = articlePosts.sort((a, b) => {
+  const dateA = a.data.pubDate ? new Date(a.data.pubDate).getTime() : 0;
+  const dateB = b.data.pubDate ? new Date(b.data.pubDate).getTime() : 0;
+  return dateB - dateA;
+});
+
+// 5. 寻找置顶文章
+const pinnedPost = sortedPosts.find(post => post.data.pinned === true) || sortedPosts[0];
+
+// 6. 统计标签数 (只统计“文章”里的标签)
+const tagMap = {};
+articlePosts.forEach(post => {
+  const tags = post.data.tags || [];
+  tags.forEach(tag => {
+    tagMap[tag] = (tagMap[tag] || 0) + 1;
+  });
+});
+
+const sortedTags = Object.entries(tagMap)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 10);
+---
+
+<BaseLayout title="文章列表 - Yutachi">
+  <div class="archive-layout">
+    
+    <!-- 左侧：文章列表大栏 -->
+    <main class="archive-main">
+      
+      <header class="archive-title-section">
+        <span class="sub-title">BLOG</span>
+        <h1 class="serif-font">文章</h1>
+      </header>
+
+      <!-- 置顶文章 (同样应用高度折叠过渡样式) -->
+      {pinnedPost && (
+        <div class="post-item pinned-item" data-tags={JSON.stringify(pinnedPost.data.tags || [])}>
+          <h2 class="serif-font">
+            <a href={`/blog/${pinnedPost.id}`}>{pinnedPost.data.title}</a>
+          </h2>
+          <p class="post-desc">{pinnedPost.data.description || '点击阅读这篇置顶文章正文...'}</p>
+          <div class="archive-post-meta">
+            <span class="pinned-tag">置顶</span>
+            <span>{pinnedPost.data.pubDate ? new Date(pinnedPost.data.pubDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}</span>
+            {pinnedPost.data.category && <span class="category-text"> · {pinnedPost.data.category}</span>}
+          </div>
+        </div>
+      )}
+
+      <!-- 分割控制条 (文章统计 & 排序) -->
+      <div class="list-control-bar">
+        <div class="total-count">共 {articlePosts.length.length} 篇</div>
+        <div class="sort-options">
+          <span class="sort-btn active">最新</span>
+          <span class="sort-btn">最早</span>
+          <span class="sort-btn">最近更新</span>
+        </div>
+      </div>
+
+      <!-- 普通文章列表 (置顶文章也会在这里正常按时间顺序出现) -->
+      <div class="regular-posts-list">
+        {sortedPosts.map((post) => (
+          <div class="post-item" data-tags={JSON.stringify(post.data.tags || [])}>
+            <h3 class="serif-font">
+              <a href={`/blog/${post.id}`}>{post.data.title}</a>
+            </h3>
+            <p class="post-desc">{post.data.description || '这是一篇关于文字记录的报告，请查收...'}</p>
+            <div class="archive-post-meta">
+              {post.data.pinned && <span class="pinned-tag-mini">置顶</span>}
+              <span>{post.data.pubDate ? new Date(post.data.pubDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}</span>
+              {post.data.category && <span class="category-text"> · {post.data.category}</span>}
+              {/* 渲染标签小药丸，加上 data-tag 方便 JS 获取 */}
+              {post.data.tags && post.data.tags.slice(0, 3).map((tag) => (
+                <span class="tag-pill" data-tag={tag}>{tag}</span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+    </main>
+
+    <!-- 右侧：侧边栏 (搜索 + 热门标签云) -->
+    <aside class="archive-sidebar">
+      <div class="sidebar-sticky-card">
+        
+        <!-- 搜索框 -->
+        <div class="search-box-wrapper">
+          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" placeholder="搜索文章标题..." id="search-input" />
+        </div>
+
+        <!-- 动态热门标签云，增加 data-tag 用于绑定事件 -->
+        <div class="sidebar-section">
+          <div class="section-title">热门标签</div>
+          <div class="tags-grid">
+            {sortedTags.map(([tag, count]) => (
+              <span class="tag-badge" data-tag={tag}>
+                {tag} <span class="tag-count">({count})</span>
+              </span>
+            ))}
+          </div>
+          <a href="#" class="all-tags-link" id="clear-tag-filter">清除标签过滤</a>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+</BaseLayout>
+
+<!-- 客户端高级即时搜索与标签过滤联动脚本 -->
+<script>
+  const initSearchAndFilter = () => {
+    const searchInput = document.getElementById('search-input') as HTMLInputElement | null;
+    const postItems = document.querySelectorAll('.post-item') as NodeListOf<HTMLElement>;
+    const pinnedCard = document.querySelector('.pinned-item') as HTMLElement | null;
+    const tagBadges = document.querySelectorAll('.tag-badge') as NodeListOf<HTMLElement>;
+    const tagPills = document.querySelectorAll('.tag-pill') as NodeListOf<HTMLElement>;
+    const clearFilterBtn = document.getElementById('clear-tag-filter');
+
+    let searchQuery = '';
+    let activeTag = ''; // 记录当前激活的过滤标签
+
+    // 统一的联合过滤函数（支持“搜索词”与“标签”双重叠加过滤！）
+    const runFilter = () => {
+      postItems.forEach(item => {
+        const title = item.querySelector('h3, h2')?.textContent?.toLowerCase() || '';
+        const desc = item.querySelector('.post-desc')?.textContent?.toLowerCase() || '';
+        
+        // 读取当前卡片的 tags 数组
+        const rawTags = item.getAttribute('data-tags') || '[]';
+        const itemTags = JSON.parse(rawTags).map((t: string) => t.toLowerCase());
+
+        const matchesSearch = title.includes(searchQuery) || desc.includes(searchQuery);
+        const matchesTag = !activeTag || itemTags.includes(activeTag);
+
+        // 平滑折叠动画过渡
+        if (matchesSearch && matchesTag) {
+          item.classList.remove('filtered-out');
+        } else {
+          item.classList.add('filtered-out');
+        }
+      });
+    };
+
+    // 1. 监听搜索框输入法组合与输入事件
+    let isComposing = false;
+    searchInput?.addEventListener('compositionstart', () => { isComposing = true; });
+    searchInput?.addEventListener('compositionend', (e) => {
+      isComposing = false;
+      searchQuery = (e.target as HTMLInputElement).value.toLowerCase().trim();
+      runFilter();
+    });
+    searchInput?.addEventListener('input', (e) => {
+      if (isComposing) return;
+      searchQuery = (e.target as HTMLInputElement).value.toLowerCase().trim();
+      runFilter();
+    });
+
+    // 2. 监听右侧侧边栏标签云点击
+    tagBadges.forEach(badge => {
+      badge.addEventListener('click', () => {
+        const tag = badge.getAttribute('data-tag')?.toLowerCase() || '';
+        
+        if (activeTag === tag) {
+          // 如果点的是已经点过的，则取消过滤
+          activeTag = '';
+          badge.classList.remove('active');
+        } else {
+          // 激活新标签，并取消其他标签激活
+          activeTag = tag;
+          tagBadges.forEach(b => b.classList.remove('active'));
+          badge.classList.add('active');
+        }
+        runFilter();
+      });
+    });
+
+    // 3. 监听文章详情里的小药丸标签点击（神奇的联动效果！）
+    tagPills.forEach(pill => {
+      pill.addEventListener('click', (e) => {
+        e.stopPropagation(); // 阻止跳转文章，仅执行过滤
+        const tag = pill.getAttribute('data-tag')?.toLowerCase() || '';
+        
+        if (activeTag === tag) {
+          activeTag = '';
+          tagBadges.forEach(b => b.classList.remove('active'));
+        } else {
+          activeTag = tag;
+          // 让右侧侧边栏对应的标签同步亮起高亮
+          tagBadges.forEach(b => {
+            if (b.getAttribute('data-tag')?.toLowerCase() === tag) {
+              b.classList.add('active');
+            } else {
+              b.classList.remove('active');
+            }
+          });
+        }
+        runFilter();
+      });
+    });
+
+    // 4. 清除标签过滤
+    clearFilterBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      activeTag = '';
+      tagBadges.forEach(b => b.classList.remove('active'));
+      runFilter();
+    });
+  };
+
+  initSearchAndFilter();
+  document.addEventListener('astro:after-swap', initSearchAndFilter);
+
+
+// 文章搜索、标签过滤与排序功能的客户端
+  const initSearchAndFilterAndSort = () => {
+    const searchInput = document.getElementById('search-input');
+    const listContainer = document.getElementById('posts-list-container');
+    const postItems = document.querySelectorAll('.regular-posts-list .post-item');
+    const pinnedCard = document.querySelector('.pinned-item');
+    const tagBadges = document.querySelectorAll('.tag-badge');
+    const tagPills = document.querySelectorAll('.tag-pill');
+    const clearFilterBtn = document.getElementById('clear-tag-filter');
+    const sortButtons = document.querySelectorAll('.sort-btn');
+
+    let searchQuery = '';
+    let activeTag = ''; 
+
+    // 1. 联合过滤函数
+    const runFilter = () => {
+      postItems.forEach(item => {
+        const title = item.querySelector('h3, h2')?.textContent?.toLowerCase() || '';
+        const desc = item.querySelector('.post-desc')?.textContent?.toLowerCase() || '';
+        
+        const rawTags = item.getAttribute('data-tags') || '[]';
+        // 安全解析 JSON
+        let itemTags = [];
+        try { itemTags = JSON.parse(rawTags).map((t) => t.toLowerCase()); } catch (e) {}
+
+        const matchesSearch = title.includes(searchQuery) || desc.includes(searchQuery);
+        const matchesTag = !activeTag || itemTags.includes(activeTag);
+
+        if (matchesSearch && matchesTag) {
+          item.classList.remove('filtered-out');
+        } else {
+          item.classList.add('filtered-out');
+        }
+      });
+    };
+
+    // 2. 搜索框监听 (完美避开 e.target 报错)
+    let isComposing = false;
+    if (searchInput) {
+      searchInput.addEventListener('compositionstart', () => { isComposing = true; });
+      searchInput.addEventListener('compositionend', () => {
+        isComposing = false;
+        // 直接读取 input 本身的值，绝不报错
+        searchQuery = searchInput.value.toLowerCase().trim();
+        runFilter();
+      });
+      searchInput.addEventListener('input', () => {
+        if (isComposing) return;
+        searchQuery = searchInput.value.toLowerCase().trim();
+        runFilter();
+      });
+    }
+
+    // 3. 标签云点击
+    tagBadges.forEach(badge => {
+      badge.addEventListener('click', () => {
+        const tag = badge.getAttribute('data-tag')?.toLowerCase() || '';
+        if (activeTag === tag) {
+          activeTag = '';
+          badge.classList.remove('active');
+        } else {
+          activeTag = tag;
+          tagBadges.forEach(b => b.classList.remove('active'));
+          badge.classList.add('active');
+        }
+        runFilter();
+      });
+    });
+
+    // 4. 小药丸点击
+    tagPills.forEach(pill => {
+      pill.addEventListener('click', (e) => {
+        e.stopPropagation(); 
+        const tag = pill.getAttribute('data-tag')?.toLowerCase() || '';
+        if (activeTag === tag) {
+          activeTag = '';
+          tagBadges.forEach(b => b.classList.remove('active'));
+        } else {
+          activeTag = tag;
+          tagBadges.forEach(b => {
+            if (b.getAttribute('data-tag')?.toLowerCase() === tag) {
+              b.classList.add('active');
+            } else {
+              b.classList.remove('active');
+            }
+          });
+        }
+        runFilter();
+      });
+    });
+
+    // 5. 清除标签
+    if (clearFilterBtn) {
+      clearFilterBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        activeTag = '';
+        tagBadges.forEach(b => b.classList.remove('active'));
+        runFilter();
+      });
+    }
+
+    // 6. 纯净版客户端平滑排序
+    sortButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!listContainer) return;
+
+        sortButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const sortType = btn.getAttribute('data-sort');
+
+        listContainer.classList.add('sorting-transition');
+
+        setTimeout(() => {
+          const itemsArray = Array.from(postItems);
+
+          itemsArray.sort((a, b) => {
+            const dateA = Number(a.getAttribute('data-date') || 0);
+            const dateB = Number(b.getAttribute('data-date') || 0);
+            const updateA = Number(a.getAttribute('data-updated') || dateA);
+            const updateB = Number(b.getAttribute('data-updated') || dateB);
+
+            if (sortType === 'oldest') {
+              return dateA - dateB; 
+            } else if (sortType === 'updated') {
+              return updateB - updateA; 
+            } else {
+              return dateB - dateA; 
+            }
+          });
+
+          itemsArray.forEach(item => {
+            listContainer.appendChild(item);
+          });
+
+          listContainer.classList.remove('sorting-transition');
+        }, 150);
+      });
+    });
+  };
+
+  initSearchAndFilterAndSort();
+  document.addEventListener('astro:after-swap', initSearchAndFilterAndSort);
+
+</script>
+
+<!-- 精美、极致平滑的折叠动画样式 -->
+<style>
+  .archive-layout {
+    display: flex;
+    justify-content: space-between;
+    gap: 60px;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 80px 24px;
+    box-sizing: border-box;
+  }
+
+  .archive-main {
+    flex: 1;
+    max-width: 680px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .archive-title-section {
+    text-align: left;
+    margin-bottom: 10px;
+  }
+  .archive-title-section .sub-title {
+    font-size: 0.7em;
+    letter-spacing: 2.5px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .archive-title-section h1 {
+    font-size: 2.2rem;
+    margin: 5px 0 0 0;
+    color: var(--text-color);
+  }
+
+  /* ======================================================= */
+  /* 🌟 核心动画点：不使用 display:none，使用 max-height 与 scale 折叠 */
+  /* ======================================================= */
+  .post-item {
+    display: block !important; /* 强制保持 block，通过 max-height 进行高度裁切 */
+    opacity: 1;
+    max-height: 500px;         /* 足够容纳文章卡片的最大高度安全值 */
+    transform: translateY(0) scale(1);
+    overflow: hidden;          /* 保证超出高度的部分被切掉 */
+    padding-bottom: 25px;
+    margin-bottom: 0;
+    border-bottom: 1px dashed var(--border-color);
+    text-align: left;
+
+    /* 优雅的高级缓动贝塞尔曲线 */
+    transition: 
+      opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+      transform 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+      max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+      padding 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+      border-color 0.4s ease;
+  }
+
+  /* 🌟 核心折叠类：当文章被排除时，高度瞬间变为0，并且淡出、缩放位移 */
+  .post-item.filtered-out {
+    opacity: 0 !important;
+    max-height: 0 !important;
+    transform: translateY(-15px) scale(0.95) !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+    border-bottom-color: transparent !important;
+    pointer-events: none;      /* 隐藏后禁用所有鼠标点击 */
+  }
+
+  /* 置顶文章单独间距 */
+  .pinned-item {
+    border-bottom-style: solid;
+  }
+
+  .pinned-item h2 {
+    font-size: 1.55rem;
+    margin: 0 0 8px 0;
+    font-weight: 500;
+  }
+
+  .pinned-item h2 a {
+    color: var(--text-color)!important;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .pinned-item h2 a:hover {
+    color: var(--accent-color)!important;
+  }
+
+  .post-item h3 a {
+  color: var(--text-color) !important; 
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.post-item h3 a:hover {
+  color: var(--accent-color) !important; 
+}
+
+  .pinned-tag {
+    background: rgba(244, 63, 94, 0.08) !important;
+    color: var(--accent-color) !important;
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  .pinned-tag-mini {
+    background: rgba(128, 128, 128, 0.08) !important;
+    color: var(--text-muted) !important;
+    font-size: 0.72rem;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .post-desc {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--text-color);
+    opacity: 0.8;
+  }
+
+  .archive-post-meta {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  /* 分割控制条 */
+  .list-control-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 12px;
+    margin-top: 15px;
+    color: var(--text-muted);
+  }
+
+  .sort-options {
+    display: flex;
+    gap: 15px;
+  }
+
+  .sort-btn {
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .sort-btn:hover, .sort-btn.active {
+    color: var(--accent-color);
+    font-weight: 500;
+  }
+
+  /* 列表容器 */
+  .regular-posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* 缩小间距，靠 max-height 的 padding 支撑，折叠更丝滑 */
+  }
+
+  /* 标签小药丸（使其可点击） */
+  .tag-pill {
+    background: rgba(128, 128, 128, 0.08);
+    color: var(--text-muted);
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .tag-pill:hover {
+    background: rgba(227, 13, 49, 0.546);
+    color: var(--accent-color);
+  }
+
+  /* 右侧侧边栏 */
+  .archive-sidebar {
+    width: 220px;
+  }
+
+  .sidebar-sticky-card {
+    position: sticky;
+    top: 100px;
+    height: fit-content;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    text-align: left;
+  }
+
+  /* 搜索框 */
+  .search-box-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(128, 128, 128, 0.05);
+    border: 1px solid var(--border-color);
+    padding: 8px 14px;
+    border-radius: 8px;
+    color: var(--text-muted);
+  }
+
+  .search-icon {
+    flex-shrink: 0;
+  }
+
+  .search-box-wrapper input {
+    background: none;
+    border: none;
+    outline: none;
+    width: 100%;
+    font-size: 0.82rem;
+    color: var(--text-color);
+    font-family: inherit;
+  }
+
+  /* 热门标签云 */
+  .sidebar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .section-title {
+    font-size: 0.8rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+  }
+
+  .tags-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tag-badge {
+    background: rgba(128, 128, 128, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .tag-badge:hover {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    transform: translateY(-1px);
+  }
+
+  /* 🌟 标签云点击激活时的高亮样式 */
+  .tag-badge.active {
+    background: var(--accent-color) !important;
+    color: #fff !important;
+    border-color: var(--accent-color) !important;
+    transform: translateY(-1px);
+  }
+
+  .tag-count {
+    font-size: 0.7rem;
+    opacity: 0.7;
+  }
+
+  .all-tags-link {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .all-tags-link:hover {
+    color: var(--text-color);
+  }
+
+  @media (max-width: 768px) {
+    .archive-layout {
+      flex-direction: column;
+      padding: 40px 20px;
+    }
+    .archive-sidebar {
+      display: none;
+    }
+  }
+
+</style>
+

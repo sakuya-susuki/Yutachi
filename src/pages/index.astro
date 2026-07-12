@@ -1,17 +1,454 @@
 ---
+// src/pages/index.astro 顶部的代码
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import LayoutGrid from '../components/LayoutGrid.astro';
+import homeData from '../data/homeData.json';
+import SiteStats from '../components/SiteStats.astro';
+import ScrollProgress from '../components/ScrollProgress.astro';
 
+// 1. 获取所有文章
+const allPosts = await getCollection('blog');
+
+// 2. 自动读取文件夹名字作为分类（让右侧的分类标签能正确显示 记/思/文章）
+allPosts.forEach(post => {
+  const pathParts = post.id.split('/');
+  const folderName = pathParts.length > 1 ? pathParts[0] : '文章';
+  post.data.category = post.data.category || folderName;
+});
+
+// 3. 将文章按发布时间从新到旧排序
+const sortedPosts = allPosts.sort((a, b) => {
+  const dateA = a.data.pubDate ? new Date(a.data.pubDate).getTime() : 0;
+  const dateB = b.data.pubDate ? new Date(b.data.pubDate).getTime() : 0;
+  return dateB - dateA;
+});
+
+//  “近期笔墨”时间筛选
+const NOW = new Date().getTime();
+const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000; // 设定“近期”的标准为 90 天（约 3 个月）
+
+// 先尝试筛选出真正属于“最近 90 天内”的文章
+let recentFiltered = sortedPosts.filter(post => {
+  const postDate = post.data.pubDate ? new Date(post.data.pubDate).getTime() : 0;
+  return (NOW - postDate) <= NINETY_DAYS;
+});
+
+// 大于 3 个月没更新，或少于 3 篇
+if (recentFiltered.length < 3) {
+  //直接抓取你博客里最新的 3 篇文章
+  recentFiltered = sortedPosts.slice(0, 3);
+} else {
+  // 最多也只截取前 5 篇，防止主页右侧被拉得无限长
+  recentFiltered = recentFiltered.slice(0, 5);
+}
+
+const recentPosts = recentFiltered.map((post, index) => ({
+  num: String(index + 1).padStart(2, '0'), 
+  category: post.data.category,
+  date: post.data.pubDate ? new Date(post.data.pubDate).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' }) : '',
+  title: post.data.title,
+  slug: post.id
+}));
+
+const thoughts = homeData.thoughts;
+const letters = homeData.letters;
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<BaseLayout title="Yutachi - 台官忽奏文昌现">
+  <div class="scroll-container">
+    
+    <!-- 1. 顶部个人信息 -->
+    <section class="hero-section">
+  
+      <div class="avatar-wrapper">
+        <img src="/photo/avatar.jpg" alt="Avatar" class="avatar" />
+      </div>
+      <h1 class="greeting serif-font">Hi, I'm <span class="highlight">
+        <a href="/blog/文章/about-me" title="about-me" class="sayaka-link">Sayaka</a> 
+      </span> 🧐</h1>
+      <p class="subtitle serif-font" >
+        I orchestrate <span class="italic-text">ideas</span> into products with <span class="glow-tag" >AI Agents</span>
+      </p>
+      <p class="description">
+       WE GO TO THE MOON NOT BECAUSE IT IS EASY, BUT BECAUSE IT IS HARD_
+      </p>
+    </section>
+
+    <!-- 2. 数据与社交媒体栏 -->
+    <section class="meta-section">
+      <p class="quote serif-font">「我们登月，不是因为它很容易，而是因为它们困难」</p>
+      <div class="stats">
+        <SiteStats />
+      </div>
+      <div class="social-icons">
+        <a href="https://x.com/Iceberja" title="X">𝕏</a>
+        <a href="mailto:Bellflowere@proton.me" title="Email">✉️</a>
+        <a href="https://github.com/sakuya-susuki" title="Github">👾</a>
+      </div>
+    </section>
+
+    <!-- 3. 【核心修正】：全新、不嵌套、100% 畅通的左右双列布局容器 -->
+    <section class="homepage-columns">
+      
+      <!-- 【左列】：碎念 + 来信 -->
+      <div class="column left-column">
+        
+        <!-- 左上：碎念 -->
+        <div class="sub-section" style="margin-bottom: 60px;">
+          <div class="column-header">
+            <span class="sub-title">MUSINGS</span>
+            <h2>碎念</h2>
+          </div>
+          <div class="thoughts-wrapper">
+            {thoughts.map((t) => (
+              <div class="thought-card" style="margin-bottom: 30px;">
+                <p class="thought-text">{t.content}</p>
+                <span class="thought-date">{t.date}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <!-- 左下：来信 -->
+        <div class="sub-section">
+          <div class="column-header">
+            <span class="sub-title">LETTERS</span>
+            <h2 " >TO ME</h2>
+          </div>
+          <div class="letters-wrapper">
+            {letters.map((l) => (
+              <div class="letter-card">
+                <p class="letter-text serif-font">“ {l.text} ”</p>
+                {l.meta && <span class="letter-meta">听 {l.meta}</span>}
+                <span class="letter-author">— {l.author}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 【右列】：近期笔墨（时间线风格） -->
+      <div class="column right-column">
+        <div class="column-header">
+          <span class="sub-title">RECENT WRITING</span>
+          <h2>近期笔墨</h2>
+        </div>
+        <ol class="timeline">
+          {recentPosts.map((post) => (
+            <li class="timeline-item" style="margin-bottom: 30px;">
+              <span class="timeline-num">{post.num}</span>
+              <div class="timeline-body">
+                <div class="post-meta">
+                  <span class="category-tag">{post.category}</span> · <span class="time">{post.date}</span>
+                </div>
+                <!-- 【核心修正】：加上了对应的 class 与 serif-font 强制应用衬线优雅字体 -->
+                <a href={`/blog/${post.slug}`} class="post-title serif-font">{post.title}</a>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+    </section>
+
+    <!-- 4. 卷轴底部装饰 -->
+    <footer class="scroll-footer">
+      <h2 class="footer-title">This not End.</h2>
+      <div class="decorative-dots">
+        <span>⟡</span><span></span><span>·</span><span>·</span><span>·</span><span>·</span><span>·</span><span>·</span><span>·</span><span>·</span><span>⟡</span>
+      </div>
+    </footer>
+
+  </div>
+</BaseLayout>
+
+<style>
+  /* ======================================================= */
+  /* 主页自适应局部样式表 (彻底修复了嵌套和变色失效问题) */
+  /* ======================================================= */
+
+  /* 基础卷轴容器，纵向大间隔 */
+  .scroll-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 80px 24px 120px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 100px;
+  }
+
+  /* 顶部个人区域 */
+  .hero-section {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .avatar {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+  }
+  .greeting {
+    font-size: 2.2em;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+  .highlight {
+    color: var(--accent-color);
+    font-weight: 700;
+  }
+  .sayaka-link {
+    color: inherit;
+    text-decoration: none;
+  }
+  .sayaka-link:hover {
+    text-decoration: underline;
+  }
+  .subtitle {
+    font-size: 1.4em;
+    color: var(--text-color);
+    opacity: 0.9;
+  }
+  .italic-text {
+    font-style: italic;
+    font-family: Georgia, serif;
+    color: var(--accent-color);
+  }
+.glow-tag {
+  background: rgba(244, 63, 94, 0.08);
+  color: var(--accent-color);
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.9em;
+  border: 1px solid rgba(244, 63, 94, 0.15);
+
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important; 
+  font-weight: 700 !important; /* 设置加粗 */
+  
+}
+  .description {
+    font-size: 0.75em;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    max-width: 500px;
+    line-height: 1.8;
+  }
+
+  /* 引言和统计栏 */
+  .meta-section {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+  }
+  .quote {
+    font-family: "Noto Serif SC", Georgia, serif;
+    font-style: italic;
+    font-size: 0.85em;
+    color: var(--text-muted);
+  }
+  .stats {
+    font-size: 0.8em;
+    color: var(--text-muted);
+  }
+  .social-icons {
+    display: flex;
+    gap: 20px;
+  }
+  .social-icons a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 1.1em;
+    transition: color 0.2s, transform 0.2s;
+  }
+  .social-icons a:hover {
+    color: var(--text-color);
+    transform: translateY(-1px);
+  }
+
+  /* 【双列弹性排版容器，去除重叠冲突】 */
+  .homepage-columns {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 80px;                  /* 完美宽度间距 */
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .column {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* 标题和副标题组合 */
+  .column-header {
+    margin-bottom: 25px;
+  }
+  .column-header .sub-title {
+    font-size: 0.7em;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .column-header h2 {
+    font-size: 1.3em;
+    margin: 5px 0 0 0;
+    font-weight: 500;
+    color: var(--text-color);
+  }
+
+  /* ================== 左侧时间线列表样式 ================== */
+  .timeline {
+    position: relative;
+    border-left: 1px dashed var(--border-color); /* 自适应虚线 */
+    padding-left: 30px;
+    margin-left: 12px;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+  }
+  .timeline-item {
+    position: relative;
+  }
+  /* 带有序号的小方块 */
+  .timeline-num {
+    position: absolute;
+    left: -42px;
+    top: 2px;
+    background: var(--bg-color); /* 自适应网页背景，无多余色块 */
+    color: var(--accent-color);
+    font-size: 0.7em;
+    padding: 0 4px;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    font-family: monospace;
+  }
+  .timeline-body {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    text-align: left;
+  }
+  .post-meta {
+    font-size: 0.75em;
+    color: var(--text-muted);
+  }
+  .category-tag {
+    color: var(--accent-color);
+  }
+  
+  /* “近期笔墨”标题改色与字体配置 */
+.post-title {
+    font-family: "Noto Serif SC", "Source Han Serif SC", "STSong", "Songti SC", "SimSun", Georgia, serif !important; /* 👈 加上这行保险字体 */
+    font-size: 1.15rem !important;                          
+    color: var(--text-color) !important;                    
+    text-decoration: none;
+    line-height: 1.5;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  .post-title:hover {
+    color: var(--accent-color) !important;                  /* 悬停时变为主题红 */
+    text-decoration: underline;
+  }
+
+  /* ================== 右侧碎念样式 ================== */
+  .thoughts-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .thought-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+  }
+  .thought-text {
+    margin: 0;
+    font-size: 0.9em;
+    line-height: 1.6;
+    color: var(--text-color); /* 碎念正文自适应 */
+  }
+  .thought-date {
+    font-size: 0.75em;
+    color: var(--text-muted);
+  }
+
+  /* ================== 右侧来信引用框样式 ================== */
+  .letters-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .letter-card {
+    background: rgba(128, 128, 128, 0.05); /* 自适应半透明磨砂感背景 */
+    border-left: 2px solid var(--border-color);
+    padding: 16px;
+    border-radius: 0 6px 6px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.2s, background-color 0.4s ease;
+    text-align: left;
+  }
+  .letter-card:hover {
+    border-left-color: var(--accent-color);
+  }
+  .letter-text {
+    margin: 0;
+    font-family: "Noto Serif SC", Georgia, serif;
+    font-size: 0.95em;
+    line-height: 1.7;
+    color: var(--text-color); /* 来信正文自适应，拯救之前的隐性暗蓝色 */
+  }
+  .letter-meta {
+    font-size: 0.75em;
+    color: var(--text-muted);
+  }
+  .letter-author {
+    font-size: 0.75em;
+    align-self: flex-end;
+    color: var(--text-muted);
+  }
+
+  /* ================== 底部装饰 ================== */
+  .scroll-footer {
+    text-align: center;
+    margin-top: 50px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .footer-title {
+    font-family: "Noto Serif SC", Georgia, serif;
+    font-size: 1.2em;
+    font-weight: 400;
+    letter-spacing: 0.5em; 
+    color: var(--text-muted);
+    margin-left: 0.5em; 
+  }
+  .decorative-dots {
+    color: var(--border-color);
+    font-size: 0.8em;
+    letter-spacing: 0.8em;
+    margin-left: 0.8em;
+  }
+
+  /* 移动端自动折叠为单列并排 */
+  @media (max-width: 768px) {
+    .homepage-columns {
+      flex-direction: column;
+      gap: 60px;
+    }
+  }
+</style>

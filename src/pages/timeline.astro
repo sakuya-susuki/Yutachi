@@ -1,0 +1,445 @@
+---
+// src/pages/archive.astro (或 timeline.astro)
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// 1. 获取所有文章
+const allPosts = await getCollection('blog');
+
+// 2. 按发布日期从新到旧排序
+const sortedPosts = allPosts.sort((a, b) => {
+  const dateA = a.data.pubDate ? new Date(a.data.pubDate).getTime() : 0;
+  const dateB = b.data.pubDate ? new Date(b.data.pubDate).getTime() : 0;
+  return dateB - dateA;
+});
+
+// 3. 按【年份】将文章分组
+const groupedByYear = sortedPosts.reduce((acc: Record<string, any[]>, post) => {
+  const year = post.data.pubDate 
+    ? new Date(post.data.pubDate).getFullYear().toString() 
+    : '未知';
+  if (!acc[year]) acc[year] = [];
+  acc[year].push(post);
+  return acc;
+}, {});
+
+// 获取降序排列的年份数组
+const years = Object.keys(groupedByYear).sort((a, b) => Number(b) - Number(a));
+---
+
+<BaseLayout title="忆往昔 - Yutachi">
+  <div class="archive-catalog-container">
+    
+    <!-- 页面头部 -->
+    <header class="catalog-header fade-up-anim" style="animation-delay: 0s;">
+      <span class="sub-title">ARCHIVES</span>
+      
+      <!-- 交互热区，悬停展开分类菜单 -->
+      <div class="title-interactive-zone">
+        <h1 class="serif-font" id="archive-main-title">忆往昔</h1>
+        
+        <div class="filter-menu">
+          <button class="filter-btn active" data-filter="all">全部</button>
+          <button class="filter-btn" data-filter="记">记</button>
+          <button class="filter-btn" data-filter="思">思</button>
+        </div>
+      </div>
+
+      <p class="catalog-desc">醉里挑灯看剑，梦回吹角连营。</p>
+      <p class="catalog-desc count-desc">至今共收录 <span id="post-count" class="highlight-count">{allPosts.length}</span> 篇落笔。</p>
+    </header>
+
+    <!-- 编年史主体 -->
+    <div class="catalog-body" id="catalog-list-container">
+      {years.map((year, index) => (
+        <section class="year-block fade-up-anim" style={`animation-delay: ${(index + 1) * 0.15}s;`} data-year={year}>
+          
+          <div class="year-sticky-zone">
+            <h2 class="year-monument serif-font">{year}</h2>
+          </div>
+
+          <div class="posts-ledger">
+            {groupedByYear[year].map((post) => {
+              const postDate = post.data.pubDate ? new Date(post.data.pubDate) : new Date();
+              const monthDay = `${String(postDate.getMonth() + 1).padStart(2, '0')}-${String(postDate.getDate()).padStart(2, '0')}`;
+              
+              //  智能提取正文内容（清理 Markdown 符号并截取前 120 字）
+              const rawBody = post.body || '';
+              const cleanBody = rawBody.replace(/[#*`>_-]/g, '').trim().slice(0, 120);
+
+              return (
+                <a href={`/blog/${post.id}`} class="ledger-row" data-category={post.data.category || '文章'}>
+                  
+                  <div class="ledger-left">
+                    <div class="ledger-title-group">
+                      <span class="ledger-date">{monthDay}</span>
+                      <h3 class="ledger-title serif-font">{post.data.title}</h3>
+                    </div>
+                    
+                    {/* 🌟 核心：如果分类是“记”，则在标题下方直接渲染内容 */}
+                    {post.data.category === '记' && (
+                      <p class="ledger-excerpt">
+                        {post.data.description || (cleanBody ? cleanBody + '...' : '一条短暂的碎念。')}
+                      </p>
+                    )}
+                  </div>
+
+                  <div class="ledger-right">
+                    {post.data.pinned && <span class="pinned-mark">置顶</span>}
+                    <span class="ledger-category">{post.data.category || '文章'}</span>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+
+        </section>
+      ))}
+    </div>
+
+  </div>
+</BaseLayout>
+
+<!-- 客户端过滤动画脚本 -->
+<script>
+  const initArchiveFilter = () => {
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const yearBlocks = document.querySelectorAll('.year-block');
+    const catalogContainer = document.getElementById('catalog-list-container');
+    const countDisplay = document.getElementById('post-count');
+    const mainTitle = document.getElementById('archive-main-title');
+
+    if (!catalogContainer) return;
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filterVal = btn.getAttribute('data-filter');
+        
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        if (mainTitle) {
+          mainTitle.innerText = filterVal === 'all' ? '忆往昔' : `忆往昔 · ${filterVal}`;
+        }
+
+        catalogContainer.classList.add('filtering-transition');
+
+        setTimeout(() => {
+          let totalVisible = 0;
+
+          yearBlocks.forEach(yearBlock => {
+            let hasVisiblePost = false;
+            const rows = yearBlock.querySelectorAll('.ledger-row');
+
+            rows.forEach(row => {
+              const category = row.getAttribute('data-category') || '';
+              if (filterVal === 'all' || category.includes(filterVal)) {
+                (row as HTMLElement).style.display = 'flex';
+                hasVisiblePost = true;
+                totalVisible++;
+              } else {
+                (row as HTMLElement).style.display = 'none';
+              }
+            });
+
+            (yearBlock as HTMLElement).style.display = hasVisiblePost ? 'flex' : 'none';
+          });
+
+          if (countDisplay) countDisplay.innerText = totalVisible.toString();
+
+          catalogContainer.classList.remove('filtering-transition');
+        }, 250);
+      });
+    });
+  };
+
+  initArchiveFilter();
+  document.addEventListener('astro:after-swap', initArchiveFilter);
+</script>
+
+<style>
+  .archive-catalog-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 80px 24px 120px 24px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 60px;
+  }
+
+  /* 页面头部 */
+  .catalog-header {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 30px;
+  }
+
+  .catalog-header .sub-title {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    color: var(--accent-color);
+    font-weight: 600;
+  }
+
+  /* 标题与过滤菜单的悬停交互样式 */
+  .title-interactive-zone {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    position: relative;
+    width: fit-content;
+  }
+
+  .title-interactive-zone h1 {
+    font-size: 2.5rem;
+    margin: 0;
+    color: var(--text-color);
+    font-weight: 500;
+    transition: color 0.3s;
+  }
+
+  .filter-menu {
+    display: flex;
+    gap: 12px;
+    opacity: 0;
+    transform: translateX(-15px);
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    pointer-events: none;
+  }
+
+  .title-interactive-zone:hover .filter-menu {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  .filter-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.3s ease;
+  }
+
+  .filter-btn:hover {
+    color: var(--text-color);
+    border-color: var(--text-muted);
+  }
+
+  .filter-btn.active {
+    background: var(--text-color);
+    color: var(--bg-color);
+    border-color: var(--text-color);
+  }
+
+  .catalog-desc {
+    margin: 10px 0 0 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+  }
+
+  .highlight-count {
+    color: var(--accent-color);
+    font-weight: 600;
+    font-size: 1.1em;
+    font-family: monospace;
+  }
+
+  /* 列表过滤淡入淡出动画过渡 */
+  .catalog-body {
+    display: flex;
+    flex-direction: column;
+    gap: 80px;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.25s ease, transform 0.3s ease;
+  }
+
+  .catalog-body.filtering-transition {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+
+  .year-block {
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+  }
+
+  .year-sticky-zone {
+    flex: 0 0 160px;
+    position: sticky;
+    top: 100px; 
+  }
+
+  .year-monument {
+    margin: 0;
+    font-size: 4.5rem;
+    line-height: 1;
+    font-weight: 300;
+    color: var(--text-color);
+    opacity: 0.12; 
+    letter-spacing: -2px;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  .year-block:hover .year-monument {
+    opacity: 0.35;
+    transform: translateX(4px);
+  }
+
+  .posts-ledger {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ledger-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center; /* 默认垂直居中对齐左右部分 */
+    padding: 24px 16px;
+    border-bottom: 1px solid var(--border-color);
+    text-decoration: none;
+    color: var(--text-color);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+    border-radius: 6px 6px 0 0;
+  }
+
+  /*  左侧容器改为纵向排列，包含标题行和简介行 */
+  .ledger-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    flex: 1; /* 撑满剩余空间防止被右侧挤压 */
+  }
+
+  /* 标题与日期的水平排列组 */
+  .ledger-title-group {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+  }
+
+  .ledger-date {
+    font-family: monospace, sans-serif;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    min-width: 45px;
+    transition: color 0.3s;
+  }
+
+  .ledger-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 400;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), color 0.3s;
+  }
+
+  /*  碎念专属的简介块排版，完美对齐标题 */
+  .ledger-excerpt {
+    margin: 0 0 0 65px; /* 精确计算：日期宽 45px + 间距 20px = 65px */
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+    opacity: 0.8;
+    max-width: 85%;
+    
+    /* 限制最多显示两行，超出显示省略号，维持排版整洁 */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .ledger-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: 20px; /* 防止标题过长贴在一起 */
+  }
+
+  .ledger-category {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    transition: color 0.3s;
+  }
+
+  .ledger-row:hover {
+    background-color: rgba(128, 128, 128, 0.03); 
+    border-bottom-color: var(--accent-color);    
+  }
+
+  .ledger-row:hover .ledger-title {
+    color: var(--accent-color);
+    transform: translateX(10px); 
+  }
+
+  .ledger-row:hover .ledger-date,
+  .ledger-row:hover .ledger-category {
+    color: var(--text-color); 
+  }
+
+  .fade-up-anim {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  }
+
+  @keyframes fadeUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* 移动端自适应 */
+  @media (max-width: 768px) {
+    .year-block {
+      flex-direction: column;
+      gap: 15px;
+    }
+    .year-sticky-zone {
+      position: relative;
+      top: 0;
+      flex: none;
+    }
+    .year-monument {
+      font-size: 3rem;
+    }
+    .ledger-row {
+      padding: 16px 8px;
+    }
+    .ledger-title-group {
+      gap: 12px;
+    }
+    .ledger-title {
+      font-size: 1rem;
+    }
+    /* 手机端同步修正碎念的正文对齐 */
+    .ledger-excerpt {
+      margin-left: 57px; /* 手机端日期变小间距变小，微调对齐 */
+    }
+    .filter-menu {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+    .title-interactive-zone {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+  }
+</style>

@@ -1,0 +1,255 @@
+---
+// src/components/ScrollProgress.astro
+interface Props {
+  headings?: Array<{ depth: number; slug: string; text: string }>;
+}
+
+const { headings = [] } = Astro.props;
+---
+
+<div class="combined-sidebar-container">
+  
+  <!-- 1. 左侧：文章大纲文本区 (平时隐藏，悬浮显示) -->
+  <div class="toc-panel">
+    <div class="toc-header">OUTLINE</div>
+    <ul class="toc-list">
+      {headings
+        .filter((h) => h.depth <= 3) // 只过滤显示 H1, H2, H3
+        .map((h) => (
+          <li class={`toc-item depth-${h.depth}`}>
+            <a href={`#${h.slug}`}>{h.text}</a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  <!-- 2. 右侧：数轴进度条（作为大纲的分割线与进度仪） -->
+  <div class="axis-panel">
+    <div class="scroll-axis-track">
+      <!-- 已经滚动的填充线 -->
+      <div class="scroll-axis-fill"></div>
+      <!-- 随滚动上下移动的数轴小圆点 -->
+      <div class="scroll-axis-dot"></div>
+    </div>
+
+    <!-- 数轴下方的回到顶部按钮 -->
+    <button id="back-to-top" class="axis-to-top-btn" aria-label="回到顶部">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="18 15 12 9 6 15"></polyline>
+      </svg>
+    </button>
+  </div>
+
+</div>
+
+<!-- 脚本逻辑 -->
+<script>
+  const setupAxisWidget = () => {
+    const axisFill = document.querySelector('.scroll-axis-fill') as HTMLElement | null;
+    const axisDot = document.querySelector('.scroll-axis-dot') as HTMLElement | null;
+    const backToTopBtn = document.getElementById('back-to-top');
+
+    if (!axisFill || !axisDot) return;
+
+    const updateProgress = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      
+      if (docHeight <= 0) return;
+
+      const percent = Math.min((scrollTop / docHeight) * 100, 100);
+      axisFill.style.height = `${percent}%`;
+      axisDot.style.top = `${percent}%`;
+    };
+
+    window.addEventListener('scroll', updateProgress);
+    updateProgress();
+
+    backToTopBtn?.addEventListener('click', () => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    });
+  };
+
+  setupAxisWidget();
+  document.addEventListener('astro:after-swap', setupAxisWidget);
+</script>
+
+<style>
+  /* ======================================================= */
+  /* 外层总容器：固定悬浮在右侧 */
+  /* ======================================================= */
+  .combined-sidebar-container {
+    position: fixed;
+    top: 50%;
+    right: 30px;               /* 距离屏幕右侧距离 */
+    transform: translateY(-50%);
+    z-index: 100;
+
+    display: flex;
+    align-items: center;       /* 水平排列：[大纲文本] + [数轴进度条] */
+    gap: 20px;
+    padding: 20px 10px;
+  }
+
+  /* ======================================================= */
+  /* 动效核心 1：左侧大纲面板的平滑出现与延迟消失 */
+  /* ======================================================= */
+  .toc-panel {
+    max-width: 180px;
+    
+    /* 默认状态：完全隐藏、向右微调位移 */
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(15px);
+    
+    /* 离开时：使用贝塞尔曲线获得慢速柔和效果，并设置 1.5 秒的缓冲停留时间 */
+    transition: 
+      opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1),
+      transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    transition-delay: 1.5s;    /* 👈 关键：鼠标离开后，保留 1.5 秒不消失 */
+  }
+
+  /* 鼠标悬浮时：立即显示，无延迟 */
+  .combined-sidebar-container:hover .toc-panel {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+    transition-delay: 0s;      /* 悬浮瞬间立即出现 */
+  }
+
+  /* 大纲内部样式 */
+  .toc-header {
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    color: var(--text-muted, #858585);
+    font-weight: bold;
+    margin-bottom: 12px;
+  }
+
+  .toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .toc-item a {
+    text-decoration: none;
+    color: var(--text-muted, #858585);
+    font-size: 0.8rem;
+    transition: color 0.2s ease;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .toc-item a:hover {
+    color: var(--text-color, #1a1a1a);
+  }
+
+  .depth-3 { padding-left: 12px; }
+
+  /* ======================================================= */
+  /* 动效核心 2：右侧数轴栏的平移与回弹 */
+  /* ======================================================= */
+  .axis-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+
+    /* 默认状态：没有触碰时，向右侧平移收缩，贴紧边缘，只显示进度条 */
+    transform: translateX(35px); 
+    
+    /* 离开时：1.5 秒缓冲延迟 */
+    transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    transition-delay: 1.5s;    /* 👈 鼠标离开后，数轴保持 1.5 秒不往右缩 */
+  }
+
+  /* 鼠标悬浮时：数轴向左平移归位，给大纲腾出展示空间 */
+  .combined-sidebar-container:hover .axis-panel {
+    transform: translateX(0);
+    transition-delay: 0s;      /* 悬浮时数轴立即向左复位 */
+  }
+
+  /* 数轴线轨道样式 */
+  .scroll-axis-track {
+    width: 2px;
+    height: 140px;             /* 数轴总高度 */
+    background-color: var(--border-color, #eef0f2);
+    position: relative;
+    border-radius: 1px;
+  }
+
+  /* 填充轨道线 */
+  .scroll-axis-fill {
+    width: 100%;
+    height: 0%;
+    background-color: var(--primary-color, #d33a50);
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 1px;
+    transition: height 0.08s linear;
+  }
+
+  /* 数轴小圆点 */
+  .scroll-axis-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--primary-color, #d33a50);
+    border: 2px solid var(--bg-color, #121212);
+    border-radius: 50%;
+    position: absolute;
+    left: 50%;
+    top: 0%;
+    transform: translate(-50%, -50%);
+    transition: top 0.08s linear;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  /* 回到顶部按钮 */
+  .axis-to-top-btn {
+    background: none;
+    border: none;
+    padding: 6px;
+    color: var(--text-muted, #858585);
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .axis-to-top-btn:hover {
+    color: var(--text-color, #1a1a1a);
+    background-color: rgba(128, 128, 128, 0.08);
+    transform: translateY(-2px);
+  }
+
+  /* ======================================================= */
+  /* 手机端响应式适配：手机上不适合 Hover，强制保持“仅显示进度数轴” */
+  /* ======================================================= */
+  @media (max-width: 1024px) {
+    .combined-sidebar-container {
+      right: 16px;
+    }
+    .toc-panel {
+      display: none !important; /* 手机端强制不加载文字大纲 */
+    }
+    .axis-panel {
+      transform: translateX(0) !important; /* 手机端数轴固定不发生位移 */
+    }
+    .scroll-axis-track {
+      height: 95px;            /* 手机端缩短高度更紧凑 */
+    }
+  }
+</style>
