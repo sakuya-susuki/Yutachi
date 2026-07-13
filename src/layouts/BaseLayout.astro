@@ -33,26 +33,37 @@ import ThemeToggle from '../components/ThemeToggle.astro';
     <canvas id="particle-canvas"></canvas>
 
     <!-- 2. 顶部全局导航栏 -->
-    <header class="header">
+ <header class="header">
       <nav class="nav">
-        <div class="nav-left">·
-          <a href="/" class="logo">
-            <img src="/photo/avatar.jpg" alt="Logo" class="nav-avatar" />
-          </a>
+        
+        <!-- 左侧：极简品牌名 -->
+        <div class="nav-left">
+          <a href="/" class="logo serif-font">Sayaka</a>
         </div>
         
-        <div class="nav-center">
-          <a href={isHome ? '#' : '/'} class={isHome ? 'active' : ''}>首</a>
-          <a href="/page">文</a>
-          <a href="timeline">忆往昔</a>
-          <a href="Ksay">记</a>
-          <a href="thoughts">思</a>
+        <!-- 中间：可折叠文字菜单 -->
+        <div id="nav-menu-wrapper" class="nav-menu-wrapper">
+          <div class="nav-center">
+            <a href={isHome ? '#' : '/'} class={isHome ? 'active' : ''}>首</a>
+            <a href="/page">文</a>
+            <a href="/archive">忆往昔</a>
+            <a href="#">记</a>
+            <a href="#">思</a>
+          </div>
         </div>
-        
-        <!-- 右侧放置主题切换按钮 -->
-        <div class="nav-right">
+
+        <!-- 🌟 右侧：永久可见的操作区（主题按钮 + 汉堡按钮） -->
+        <div class="nav-actions">
           <ThemeToggle />
+          <button id="mobile-menu-btn" class="hamburger-btn" aria-label="菜单">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
         </div>
+
       </nav>
     </header>
 
@@ -242,7 +253,43 @@ import ThemeToggle from '../components/ThemeToggle.astro';
       updateTimeGreeting();
     </script>
 
-    <!-- 全局阅读进度条 -->
+     <script is:inline>
+      function setupMobileMenu() {
+        const btn = document.getElementById('mobile-menu-btn');
+        const menu = document.getElementById('nav-menu-wrapper');
+        
+        if (!btn || !menu) return;
+
+        // 1. 清除可能残留的旧事件（防止页面切换时重复绑定导致闪烁）
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+
+        // 2. 绑定点击展开/收起事件
+        newBtn.addEventListener('click', () => {
+          menu.classList.toggle('open');
+          console.log('汉堡菜单点击成功！状态：', menu.classList.contains('open'));
+        });
+
+        // 3. 点击菜单里的任意链接后，自动收起菜单
+        const links = menu.querySelectorAll('a');
+        links.forEach(link => {
+          link.addEventListener('click', () => {
+            menu.classList.remove('open');
+          });
+        });
+      }
+
+      // 无论页面怎么加载，保证 100% 绑定成功
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupMobileMenu);
+      } else {
+        setupMobileMenu();
+      }
+      
+      // 兼容 Astro 的无缝换页功能
+      document.addEventListener('astro:page-load', setupMobileMenu);
+      document.addEventListener('astro:after-swap', setupMobileMenu);
+    </script>
 
   </body>
 </html>
@@ -563,20 +610,138 @@ import ThemeToggle from '../components/ThemeToggle.astro';
   }
 
   /* 移动端窄屏折叠自适应 */
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    background-color: var(--header-bg) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+
+  .nav {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 15px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+  }
+
+  .logo {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-color) !important;
+    text-decoration: none;
+    letter-spacing: 1px;
+    transition: color 0.3s ease;
+  }
+
+  /* 菜单包裹器 (撑满中间空间，使文字永远绝对居中) */
+  .nav-menu-wrapper {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-center {
+    display: flex;
+    gap: 25px;
+  }
+
+  .nav-center a {
+    color: var(--text-muted) !important;
+    text-decoration: none;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    transition: color 0.2s ease;
+  }
+
+  .nav-center a:hover, .nav-center a.active {
+    color: var(--text-color) !important;
+  }
+
+  /* 右侧操作区并排显示 */
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* 电脑端按钮间距 */
+  }
+
+  /* 电脑端隐藏汉堡按钮 */
+  .hamburger-btn {
+    display: none; 
+  }
+
+  /* ======================================================= */
+  /* 📱 手机端适配：极致小巧的折叠菜单与永久可见的主题按钮 */
+  /* ======================================================= */
   @media (max-width: 768px) {
-    .footer-meta-grid {
-      flex-direction: column !important;
-      gap: 30px !important;
+    .post-sidebar {
+      display: none !important; 
     }
-    .meta-right-links {
+    
+    .markdown-body {
+      font-size: 14.5px !important;
+      line-height: 1.7 !important;
+    }
+
+    /* 1. 手机端显示汉堡按钮 */
+    .hamburger-btn {
+      display: block !important;
+      background: none !important;
+      border: none !important;
+      color: var(--text-color) !important;
+      cursor: pointer !important;
+      padding: 6px !important;
+      z-index: 1001 !important; 
+    }
+
+    /* 2. 右侧操作区缩紧间距 */
+    .nav-actions {
+      gap: 2px !important; 
+    }
+
+    /* 3. 初始隐藏的文字菜单 */
+    .nav-menu-wrapper {
+      position: absolute !important;
+      top: 100% !important;
+      left: 0 !important;
       width: 100% !important;
-      justify-content: space-between !important;
-      gap: 20px !important;
-    }
-    .footer-compliance-row {
       flex-direction: column !important;
+      background-color: var(--bg-color) !important;
+      border-bottom: 1px solid transparent !important;
+      
+      max-height: 0 !important;
+      opacity: 0 !important;
+      overflow: hidden !important;
+      padding: 0 24px !important; 
+      pointer-events: none !important;
+      
+      transition: 
+        max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
+        opacity 0.3s ease, 
+        padding 0.3s ease !important;
+    }
+
+    /* 4. 展开时的精致面板 */
+    .nav-menu-wrapper.open {
+      max-height: 250px !important;
+      opacity: 1 !important;
+      padding: 15px 24px 20px 24px !important;
+      border-bottom-color: var(--border-color) !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+      pointer-events: auto !important; 
+    }
+
+    .nav-center {
+      flex-direction: column !important;
+      align-items: flex-start !important; 
       gap: 12px !important;
-      align-items: flex-start !important;
+      width: 100% !important;
     }
   }
-</style>
+  </style>
