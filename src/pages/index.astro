@@ -165,9 +165,9 @@ const letters = homeData.letters;
 </BaseLayout>
 
 <style>
-  /* ======================================================= */
+  /*       = */
   /* 主页自适应局部样式表 (彻底修复了嵌套和变色失效问题) */
-  /* ======================================================= */
+  /*       = */
 
   /* 基础卷轴容器，纵向大间隔 */
   .scroll-container {
@@ -304,7 +304,7 @@ const letters = homeData.letters;
     color: var(--text-color);
   }
 
-  /* ================== 左侧时间线列表样式 ================== */
+  /*    左侧时间线列表样式    */
   .timeline {
     position: relative;
     border-left: 1px dashed var(--border-color); /* 自适应虚线 */
@@ -347,8 +347,7 @@ const letters = homeData.letters;
   
   /* “近期笔墨”标题改色与字体配置 */
 .post-title {
-    font-family: "Noto Serif SC", "Source Han Serif SC", "STSong", "Songti SC", "SimSun", Georgia, serif !important; /* 👈 加上这行保险字体 */
-    font-size: 1.15rem !important;                          
+    font-family: "Noto Serif SC", "Source Han Serif SC", "STSong", "Songti SC", "SimSun", Georgia, serif !important; /* 
     color: var(--text-color) !important;                    
     text-decoration: none;
     line-height: 1.5;
@@ -360,7 +359,7 @@ const letters = homeData.letters;
     text-decoration: underline;
   }
 
-  /* ================== 右侧碎念样式 ================== */
+  /*    右侧碎念样式    */
   .thoughts-wrapper {
     display: flex;
     flex-direction: column;
@@ -383,7 +382,7 @@ const letters = homeData.letters;
     color: var(--text-muted);
   }
 
-  /* ================== 右侧来信引用框样式 ================== */
+  /*    右侧来信引用框样式    */
   .letters-wrapper {
     display: flex;
     flex-direction: column;
@@ -420,7 +419,7 @@ const letters = homeData.letters;
     color: var(--text-muted);
   }
 
-  /* ================== 底部装饰 ================== */
+  /*    底部装饰    */
   .scroll-footer {
     text-align: center;
     margin-top: 50px;
@@ -445,10 +444,18 @@ const letters = homeData.letters;
   }
 
   /* 移动端自动折叠为单列并排 */
-  @media (max-width: 768px) {
+ @media (max-width: 768px) {
+    .scroll-container {
+      padding: 40px 20px 80px 20px !important; /* 缩小手机两侧留白 */
+      gap: 60px !important;
+    }
     .homepage-columns {
-      flex-direction: column;
-      gap: 60px;
+      flex-direction: column !important; 
+      gap: 60px !important;
+    }
+    .column {
+      width: 100% !important; /* 占满手机屏幕宽度 */
     }
   }
+  
 </style>

@@ -76,7 +76,7 @@ const years = Object.keys(groupedByYear).sort((a, b) => Number(b) - Number(a));
                       <h3 class="ledger-title serif-font">{post.data.title}</h3>
                     </div>
                     
-                    {/* 🌟 核心：如果分类是“记”，则在标题下方直接渲染内容 */}
+                    {/*    核心：如果分类是“记”，则在标题下方直接渲染内容 */}
                     {post.data.category === '记' && (
                       <p class="ledger-excerpt">
                         {post.data.description || (cleanBody ? cleanBody + '...' : '一条短暂的碎念。')}
@@ -405,41 +405,59 @@ const years = Object.keys(groupedByYear).sort((a, b) => Number(b) - Number(a));
   }
 
   /* 移动端自适应 */
-  @media (max-width: 768px) {
+   @media (max-width: 768px) {
+    .archive-catalog-container {
+      padding: 40px 20px 80px 20px !important;
+      gap: 40px !important;
+    }
+    
+    /* 巨型年份不再悬浮，变成普通的段落标题 */
     .year-block {
-      flex-direction: column;
-      gap: 15px;
+      flex-direction: column !important;
+      gap: 10px !important;
     }
     .year-sticky-zone {
-      position: relative;
-      top: 0;
-      flex: none;
+      position: relative !important;
+      top: 0 !important;
+      flex: none !important;
     }
     .year-monument {
-      font-size: 3rem;
+      font-size: 2.8rem !important; /* 缩小手机上的年份字体 */
+      opacity: 0.3 !important;
     }
+
+   移动端适配
     .ledger-row {
-      padding: 16px 8px;
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 12px !important;
+      padding: 20px 12px !important;
     }
-    .ledger-title-group {
-      gap: 12px;
+    .ledger-left, .ledger-title-group {
+      flex-direction: column !important; /* 日期和标题上下堆叠 */
+      gap: 6px !important;
+      align-items: flex-start !important;
     }
-    .ledger-title {
-      font-size: 1rem;
+    .ledger-right {
+      margin-left: 0 !important;
+      align-self: flex-start !important;
     }
-    /* 手机端同步修正碎念的正文对齐 */
     .ledger-excerpt {
-      margin-left: 57px; /* 手机端日期变小间距变小，微调对齐 */
+      margin-left: 0 !important; /* 取消手机端碎念的左侧空白缩进 */
+      margin-top: 4px !important;
+    }
+
+    /* 手机端直接展示过滤菜单，因为手机没有鼠标悬停(Hover) */
+    .title-interactive-zone {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 16px !important;
     }
     .filter-menu {
-      opacity: 1;
-      transform: translateX(0);
-      pointer-events: auto;
-    }
-    .title-interactive-zone {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
+      opacity: 1 !important;
+      transform: translateX(0) !important;
+      pointer-events: auto !important;
+      flex-wrap: wrap !important; /* 允许按钮换行 */
     }
   }
 </style>

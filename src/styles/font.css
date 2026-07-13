@@ -41,7 +41,7 @@
   /* 1. 适当降低 Markdown 整体正文字号，使其在小屏上更精致 */
   .markdown-body {
     font-size: 0.98rem !important; 
-    line-height: 1.7 !important;
+    line-height: 1.7 !important; 
   }
 
   /* 2. 降低文章大标题字号（原先 2.2em 在手机上太大了，降到 1.6rem 左右） */
@@ -78,7 +78,7 @@
 
   /* 2. 核心：强制收缩 Markdown 容器的基准字号 */
   .markdown-body {
-    font-size: 14.5px !important;    /* 👈 完美复刻图 2 的正文字号大小 */
+    font-size: 14.5px !important;    /* 复刻图 2 的正文字号大小 */
     line-height: 1.65 !important;    /* 稍微紧凑的行高，更具实体书卷气 */
     color: #333333 !important;       /* 深灰色，比纯黑更柔和 */
   }
