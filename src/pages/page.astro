@@ -68,7 +68,7 @@ const sortedTags = Object.entries(tagMap)
 
       <!-- 分割控制条 (文章统计 & 排序) -->
       <div class="list-control-bar">
-        <div class="total-count">共 {articlePosts.length.length} 篇</div>
+        <div class="total-count">共 {articlePosts.length} 篇</div>
         <div class="sort-options">
           <span class="sort-btn active">最新</span>
           <span class="sort-btn">最早</span>
@@ -419,9 +419,9 @@ const sortedTags = Object.entries(tagMap)
     color: var(--text-color);
   }
 
-  /* ======================================================= */
-  /* 🌟 核心动画点：不使用 display:none，使用 max-height 与 scale 折叠 */
-  /* ======================================================= */
+  /*       = */
+  /*    核心动画点：不使用 display:none，使用 max-height 与 scale 折叠 */
+  /*       = */
   .post-item {
     display: block !important; /* 强制保持 block，通过 max-height 进行高度裁切 */
     opacity: 1;
@@ -442,7 +442,7 @@ const sortedTags = Object.entries(tagMap)
       border-color 0.4s ease;
   }
 
-  /* 🌟 核心折叠类：当文章被排除时，高度瞬间变为0，并且淡出、缩放位移 */
+  /*    核心折叠类：当文章被排除时，高度瞬间变为0，并且淡出、缩放位移 */
   .post-item.filtered-out {
     opacity: 0 !important;
     max-height: 0 !important;
@@ -646,7 +646,7 @@ const sortedTags = Object.entries(tagMap)
     transform: translateY(-1px);
   }
 
-  /* 🌟 标签云点击激活时的高亮样式 */
+  /*    标签云点击激活时的高亮样式 */
   .tag-badge.active {
     background: var(--accent-color) !important;
     color: #fff !important;
