@@ -60,16 +60,18 @@ const letters = homeData.letters;
     
     <!-- 1. 顶部个人信息 -->
     <section class="hero-section">
-  
+      <!-- 1 -->
       <div class="avatar-wrapper">
         <img src="/photo/avatar.jpg" alt="Avatar" class="avatar" />
       </div>
       <h1 class="greeting serif-font">Hi, I'm <span class="highlight">
         <a href="/blog/文章/about-me" title="about-me" class="sayaka-link">Sayaka</a> 
       </span> 🧐</h1>
+      <!-- 二 -->
       <p class="subtitle serif-font" >
         I orchestrate <span class="italic-text">ideas</span> into products with <span class="glow-tag" >AI Agents</span>
       </p>
+      <!-- 三 -->
       <p class="description">
        WE GO TO THE MOON NOT BECAUSE IT IS EASY, BUT BECAUSE IT IS HARD_
       </p>
@@ -346,17 +348,21 @@ const letters = homeData.letters;
   }
   
   /* “近期笔墨”标题改色与字体配置 */
-.post-title {
-    font-family: "Noto Serif SC", "Source Han Serif SC", "STSong", "Songti SC", "SimSun", Georgia, serif !important; /* 
-    color: var(--text-color) !important;                    
-    text-decoration: none;
+  .post-title,
+  .post-title:visited {
+    font-family: "Noto Serif SC", "Source Han Serif SC", "STSong", "SimSun", Georgia, serif !important;
+    font-size: 1.15rem !important;
+    color: var(--text-color) !important; /*    永远跟随日夜模式的主文字色 */
+    text-decoration: none !important;
     line-height: 1.5;
     font-weight: 500;
     transition: color 0.2s;
   }
-  .post-title:hover {
-    color: var(--accent-color) !important;                  /* 悬停时变为主题红 */
-    text-decoration: underline;
+  /* 鼠标悬停和手指按下的状态，强行绑定为主题红 */
+  .post-title:hover,
+  .post-title:active {
+    color: var(--accent-color) !important; /*    悬停或点击时亮起蔷薇红 */
+    text-decoration: underline !important;
   }
 
   /*    右侧碎念样式    */

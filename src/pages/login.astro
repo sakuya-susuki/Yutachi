@@ -1,0 +1,465 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="身份验证 - Yutachi">
+  <div class="login-container">
+    <header class="login-header">
+      <span class="sub-title">AUTHENTICATION</span>
+      <h1 class="serif-font" id="page-title">扉</h1>
+      <p class="login-desc" id="page-desc">请输入凭证登录</p>
+    </header>
+
+    <div class="login-form-box">
+      <div class="input-group">
+        <input type="email" id="email" placeholder="邮箱" required />
+      </div>
+      <div class="input-group">
+        <input type="password" id="password" placeholder="密码" required />
+      </div>
+      
+      <!-- 主按钮（不写死文字，靠 JS 动态改变） -->
+      <button id="submit-btn" class="login-submit-btn serif-font">登 录</button>
+      
+      <!-- 新增：状态切换小按钮 -->
+      <button type="button" id="toggle-mode-btn" class="register-toggle-btn">
+        没有账号？点击注册
+      </button>---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="身份验证 - Yutachi">
+  <div class="login-container">
+    <header class="login-header">
+      <span class="sub-title">AUTHENTICATION</span>
+      <h1 class="serif-font" id="page-title">扉</h1>
+      <p class="login-desc" id="page-desc">请输入凭证登录</p>
+    </header>
+
+    <div class="login-form-box">
+      <div class="input-group">
+        <input type="email" id="email" placeholder="邮箱" required />
+      </div>
+      <div class="input-group">
+        <input type="password" id="password" placeholder="密码" required />
+      </div>
+      
+      <!-- 主按钮（不写死文字，靠 JS 动态改变） -->
+      <button id="submit-btn" class="login-submit-btn serif-font">登 录</button>
+      
+      <!-- 新增：状态切换小按钮 -->
+      <button type="button" id="toggle-mode-btn" class="register-toggle-btn">
+        没有账号？点击注册
+      </button>
+
+      <p id="msg" class="error-msg"></p>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+
+  // 注意：填入你自己的 Supabase URL 和 Key
+  const supabaseUrl = 'YOUR_SUPABASE_URL'; 
+  const supabaseKey = 'YOUR_SUPABASE_ANON_KEY'; 
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  const initAuth = () => {
+    const submitBtn = document.getElementById('submit-btn');
+    const toggleBtn = document.getElementById('toggle-mode-btn');
+    const msgEl = document.getElementById('msg');
+    const pageTitle = document.getElementById('page-title');
+    const pageDesc = document.getElementById('page-desc');
+
+    if (!submitBtn || !toggleBtn || !msgEl) return;
+
+    let isLoginMode = true;
+
+    toggleBtn.onclick = () => {
+      isLoginMode = !isLoginMode; 
+      
+      msgEl.innerText = ""; 
+      
+      if (isLoginMode) {
+        pageTitle.innerText = "扉";
+        pageDesc.innerText = "请输入凭证登录";
+        submitBtn.innerText = "登 录";
+        toggleBtn.innerText = "没有账号？点击注册";
+      } else {
+        pageTitle.innerText = "新 兵";
+        pageDesc.innerText = "创建您的凭证";
+        submitBtn.innerText = "注 册";
+        toggleBtn.innerText = "已有账号？返回登录";
+      }
+    };
+
+    submitBtn.onclick = async () => {
+      const email = (document.getElementById('email') as HTMLInputElement).value.trim();
+      const password = (document.getElementById('password') as HTMLInputElement).value.trim();
+
+      if (!email || !password) {
+        msgEl.style.color = "#f43f5e";
+        msgEl.innerText = "请填写完整信息";
+        return;
+      }
+
+      submitBtn.innerText = "处理中...";
+      submitBtn.disabled = true;
+
+      try {
+        let authError = null;
+
+        if (isLoginMode) {
+          const { error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password,
+          });
+          authError = error;
+        } else {
+          const { error } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+          });
+          authError = error;
+        }
+
+        if (authError) { 
+          throw new Error(authError.message);
+        }
+
+        msgEl.style.color = 'var(--accent-color)';
+        if (isLoginMode) {
+          msgEl.innerText = "验证通过，正在重定向...";
+          setTimeout(() => { window.location.href = '/'; }, 1000);
+        } else {
+          msgEl.innerText = "注册成功！请前往邮箱验证。";
+          submitBtn.innerText = "注 册";
+          submitBtn.disabled = false;
+        }
+
+      } catch (e: any) { 
+        msgEl.style.color = "#f43f5e";
+        msgEl.innerText = e.message; 
+        
+        let hold = 5; 
+        submitBtn.disabled = true; 
+        submitBtn.innerText = `等待(${hold}s)`; 
+        
+        const timer = setInterval(() => {
+          hold--; 
+          if (hold > 0) {
+            submitBtn.innerText = `等待(${hold}s)`;
+          } else {
+            clearInterval(timer);
+            submitBtn.innerText = isLoginMode ? "登 录" : "注 册"; 
+            submitBtn.disabled = false; 
+          }
+        }, 1000); 
+      }
+    };
+  };
+
+  initAuth();
+  document.addEventListener('astro:after-swap', initAuth);
+  document.addEventListener('astro:page-load', initAuth);
+</script>
+
+<style>
+  .login-container {
+    max-width: 400px;
+    margin: 120px auto;
+    padding: 0 24px;
+    text-align: center;
+  }
+
+  .login-header {
+    margin-bottom: 50px;
+  }
+
+  .sub-title {
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+  }
+
+  .login-header h1 {
+    font-size: 3rem;
+    margin: 15px 0;
+    color: var(--text-color);
+    font-weight: 400;
+  }
+
+  .login-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .login-form-box {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .input-group input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px 0;
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.3s;
+  }
+
+  .input-group input:focus {
+    border-bottom-color: var(--accent-color);
+  }
+
+  .login-submit-btn {
+    margin-top: 20px;
+    background: transparent;
+    border: 1px solid var(--text-color);
+    color: var(--text-color);
+    padding: 12px;
+    cursor: pointer;
+    font-size: 1rem;
+    letter-spacing: 4px;
+    transition: all 0.3s;
+  }
+
+  .login-submit-btn:hover {
+    background: var(--text-color);
+    color: var(--bg-color);
+  }
+
+  .error-msg {
+    font-size: 0.8rem;
+    color: #f43f5e;
+    min-height: 1.2em;
+  }
+
+  /* 新增的小按钮样式 */
+  .register-toggle-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    margin-top: 5px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    transition: color 0.3s;
+  }
+  
+  .register-toggle-btn:hover {
+    color: var(--accent-color);
+  }
+</style>
+
+      <p id="msg" class="error-msg"></p>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+
+  // 注意：填入你自己的 Supabase URL 和 Key
+  const supabaseUrl = 'YOUR_SUPABASE_URL'; 
+  const supabaseKey = 'YOUR_SUPABASE_ANON_KEY'; 
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  const initAuth = () => {
+    const submitBtn = document.getElementById('submit-btn');
+    const toggleBtn = document.getElementById('toggle-mode-btn');
+    const msgEl = document.getElementById('msg');
+    const pageTitle = document.getElementById('page-title');
+    const pageDesc = document.getElementById('page-desc');
+
+    if (!submitBtn || !toggleBtn || !msgEl) return;
+
+    let isLoginMode = true;
+
+    toggleBtn.onclick = () => {
+      isLoginMode = !isLoginMode; 
+      
+      msgEl.innerText = ""; 
+      
+      if (isLoginMode) {
+        pageTitle.innerText = "扉";
+        pageDesc.innerText = "请输入凭证登录";
+        submitBtn.innerText = "登 录";
+        toggleBtn.innerText = "没有账号？点击注册";
+      } else {
+        pageTitle.innerText = "新 兵";
+        pageDesc.innerText = "创建您的凭证";
+        submitBtn.innerText = "注 册";
+        toggleBtn.innerText = "已有账号？返回登录";
+      }
+    };
+
+    submitBtn.onclick = async () => {
+      const email = (document.getElementById('email') as HTMLInputElement).value.trim();
+      const password = (document.getElementById('password') as HTMLInputElement).value.trim();
+
+      if (!email || !password) {
+        msgEl.style.color = "#f43f5e";
+        msgEl.innerText = "请填写完整信息";
+        return;
+      }
+
+      submitBtn.innerText = "处理中...";
+      submitBtn.disabled = true;
+
+      try {
+        let authError = null;
+
+        if (isLoginMode) {
+          const { error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password,
+          });
+          authError = error;
+        } else {
+          const { error } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+          });
+          authError = error;
+        }
+
+        if (authError) { 
+          throw new Error(authError.message);
+        }
+
+        msgEl.style.color = 'var(--accent-color)';
+        if (isLoginMode) {
+          msgEl.innerText = "验证通过，正在重定向...";
+          setTimeout(() => { window.location.href = '/'; }, 1000);
+        } else {
+          msgEl.innerText = "注册成功！请前往邮箱验证。";
+          submitBtn.innerText = "注 册";
+          submitBtn.disabled = false;
+        }
+
+      } catch (e: any) { 
+        msgEl.style.color = "#f43f5e";
+        msgEl.innerText = e.message; 
+        
+        let hold = 5; 
+        submitBtn.disabled = true; 
+        submitBtn.innerText = `等待(${hold}s)`; 
+        
+        const timer = setInterval(() => {
+          hold--; 
+          if (hold > 0) {
+            submitBtn.innerText = `等待(${hold}s)`;
+          } else {
+            clearInterval(timer);
+            submitBtn.innerText = isLoginMode ? "登 录" : "注 册"; 
+            submitBtn.disabled = false; 
+          }
+        }, 1000); 
+      }
+    };
+  };
+
+  initAuth();
+  document.addEventListener('astro:after-swap', initAuth);
+  document.addEventListener('astro:page-load', initAuth);
+</script>
+
+<style>
+  .login-container {
+    max-width: 400px;
+    margin: 120px auto;
+    padding: 0 24px;
+    text-align: center;
+  }
+
+  .login-header {
+    margin-bottom: 50px;
+  }
+
+  .sub-title {
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+  }
+
+  .login-header h1 {
+    font-size: 3rem;
+    margin: 15px 0;
+    color: var(--text-color);
+    font-weight: 400;
+  }
+
+  .login-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .login-form-box {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .input-group input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px 0;
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.3s;
+  }
+
+  .input-group input:focus {
+    border-bottom-color: var(--accent-color);
+  }
+
+  .login-submit-btn {
+    margin-top: 20px;
+    background: transparent;
+    border: 1px solid var(--text-color);
+    color: var(--text-color);
+    padding: 12px;
+    cursor: pointer;
+    font-size: 1rem;
+    letter-spacing: 4px;
+    transition: all 0.3s;
+  }
+
+  .login-submit-btn:hover {
+    background: var(--text-color);
+    color: var(--bg-color);
+  }
+
+  .error-msg {
+    font-size: 0.8rem;
+    color: #f43f5e;
+    min-height: 1.2em;
+  }
+
+  /* 新增的小按钮样式 */
+  .register-toggle-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    margin-top: 5px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    transition: color 0.3s;
+  }
+  
+  .register-toggle-btn:hover {
+    color: var(--accent-color);
+  }
+</style>

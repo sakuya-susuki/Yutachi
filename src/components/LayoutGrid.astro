@@ -1,11 +1,11 @@
 <style>
-  /* ====== 1. 双列并排排版 (左右控制) ====== */
+  /*    1. 双列并排排版 (左右控制)    */45天rwsaq
   .content-grid {
     display: flex !important; 
     flex-direction: row;      
     justify-content: space-between;
     align-items: flex-start;
-    gap: 80px;                /* 【调整了这里】把左右间距稍微拉宽了一点 */
+    gap: 80px;                
     width: 100%;
     margin-top: 40px;         
   }
@@ -15,7 +15,7 @@
     min-width: 0; 
   }
 
-  /* ====== 2. 板块与卡片间距 (上下控制 - 解决太挤的问题) ====== */
+  /*  控制板块与卡片间距     */
   /* 拉开“碎念”和“来信”两个大板块的距离 */
   .sub-section {
     margin-bottom: 60px; 
@@ -32,7 +32,7 @@
     margin-bottom: 0;
   }
 
-  /* ====== 3. 手机端适配 ====== */
+  /*    3. 手机端适配    */
   @media (max-width: 768px) {
     .content-grid {
       flex-direction: column !important; 

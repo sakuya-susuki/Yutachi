@@ -46,7 +46,7 @@ import ThemeToggle from '../components/ThemeToggle.astro';
           <div class="nav-center">
             <a href={isHome ? '#' : '/'} class={isHome ? 'active' : ''}>首</a>
             <a href="/page">文</a>
-            <a href="/archive">忆往昔</a>
+            <a href="/timeline">忆往昔</a>
             <a href="#">记</a>
             <a href="#">思</a>
           </div>
@@ -94,7 +94,7 @@ import ThemeToggle from '../components/ThemeToggle.astro';
           </div>
 
           <div class="action-sublinks">
-            <a href="#">一言</a> · <a href="/friends">朋友们</a> · <a href="#">书柜</a>
+            <a href="tome">来信</a> · <a href="/friends">朋友们</a> · <a href="#">书柜</a>
           </div>
         </div>
 
@@ -121,6 +121,7 @@ import ThemeToggle from '../components/ThemeToggle.astro';
               <h4>更多</h4>
               <a href="photos">照片廊</a>
               <a href="friends">友链</a>
+              <!-- <a href="login">登记</a> -->
 
             </div>
             <div class="link-group">
@@ -791,9 +792,9 @@ import ThemeToggle from '../components/ThemeToggle.astro';
     display: none; 
   }
 
-  /* ======================================================= */
+  /*         */
   /* 📱 手机端适配：极致小巧的折叠菜单与永久可见的主题按钮 */
-  /* ======================================================= */
+  /*         */
   @media (max-width: 768px) {
     .post-sidebar {
       display: none !important; 

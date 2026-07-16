@@ -15,7 +15,11 @@
   },
   "dependencies": {
     "@astrojs/markdown-remark": "^7.2.1",
+    "@notionhq/client": "^5.23.2",
+    "@supabase/supabase-js": "^2.110.7",
     "astro": "^7.0.3",
+    "dotenv": "^17.4.2",
+    "notion-to-md": "^3.1.9",
     "rehype-katex": "^7.0.1",
     "remark-math": "^6.0.0"
   }
