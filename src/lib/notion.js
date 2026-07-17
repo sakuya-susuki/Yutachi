@@ -7,7 +7,7 @@ const TOKEN = import.meta.env.NOTION_TOKEN || process.env.NOTION_TOKEN;
 const DATABASE_ID = import.meta.env.NOTION_DATABASE_ID || process.env.NOTION_DATABASE_ID;
 
 export async function getPosts() {
-    // ... 保持原来的 fetch 逻辑
+    // 保持原来的 fetch 逻辑
 }
   // 
   try {
