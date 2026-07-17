@@ -1,40 +1,40 @@
 ---
 import { getCollection, render } from 'astro:content';
-import { getPosts } from '../../lib/notion.js';
+// 1. 暂时注释掉 Notion API 的导入
+// import { getPosts } from '../../lib/notion.js';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ScrollProgress from '../../components/ScrollProgress.astro';
 
 export async function getStaticPaths() {
-  console.log("🚀 正在运行 getStaticPaths，准备抓取 Notion 数据..."); // <--- 加上这一行
-
-  const localEntries = await getCollection('blog');
-// 1. 获取所有路径
-export async function getStaticPaths() {
+  // 2. 获取本地 Markdown 路径
   const localEntries = await getCollection('blog');
   const localPaths = localEntries.map(e => ({ 
     params: { slug: e.id.replace(/\.md$/, '') }, 
     props: { source: 'local', entry: e } 
   }));
 
-  const notionPosts = await getPosts();
-  const notionPaths = notionPosts.map(p => ({ 
-    params: { slug: p.id }, 
-    props: { source: 'notion', entry: p } 
-  }));
+  // --- 下面是 Notion 相关的路由生成代码，暂时注释掉 ---
+  // const notionPosts = await getPosts();
+  // const notionPaths = notionPosts.map(p => ({ 
+  //   params: { slug: p.id }, 
+  //   props: { source: 'notion', entry: p } 
+  // }));
+  // return [...localPaths, ...notionPaths];
 
-  return [...localPaths, ...notionPaths];
-}}
+  // 3. 目前仅返回本地文章的路由
+  return localPaths;
+}
 
 const { source, entry } = Astro.props;
 
-// 2. 渲染本地 Markdown 内容
+// 4. 渲染内容 (目前 source 只会是 'local')
 const { Content } = source === 'local' ? await render(entry) : { Content: null };
 
-// 3. 标题与描述处理 (兼容 Notion 和本地)
-const title = source === 'local' ? entry.data.title : (entry.properties.Name?.title[0]?.plain_text || '文章');
-const description = source === 'local' ? entry.data.description : 'Notion 文章';
+// 5. 标题与描述处理
+const title = source === 'local' ? entry.data.title : 'Notion 文章';
+const description = source === 'local' ? entry.data.description : 'Notion 描述';
 
-// 注意：这里需要你后续添加 notion-to-md 转换逻辑
+// 后续用于 Notion 转换的占位符，暂时留空
 const notionHtml = ""; 
 ---
 
