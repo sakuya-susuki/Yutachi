@@ -3,32 +3,36 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
-// 1. 获取所有的 Markdown 内容
-const rawPosts = await getCollection('blog');
-
-// 2. 自动读取文件夹名字作为分类
-rawPosts.forEach(post => {
-  const pathParts = post.id.split('/'); 
-  const folderName = pathParts.length > 1 ? pathParts[0] : '文章'; 
-  post.data.category = post.data.category || folderName;
+// 1. 【放行随记】把 id.startsWith('随记/') 也加进判断条件中
+const pagePosts = await getCollection('blog', ({ id }) => {
+  return id.startsWith('文章/') || id.startsWith('思考/') || id.startsWith('随记/');
 });
 
-//  3. 核心拦截：只保留分类为“文章”的内容！(过滤掉“记”和“思”)
-const articlePosts = rawPosts.filter(post => post.data.category === '文章');
+// 2. 【增加分类映射】告诉前端，随记文件夹对应分类名为“记”
+pagePosts.forEach(post => {
+  if (post.id.startsWith('文章/')) {
+    post.data.category = '文';
+  } else if (post.id.startsWith('思考/')) {
+    post.data.category = '思';
+  } else if (post.id.startsWith('随记/')) {
+    post.data.category = '记'; 
+  }
+});
+// ... 下面的排序 (sortedPosts) 和 标签 (tagMap) 代码保持不变
 
-// 4. 按发布日期从新到旧排序 (只排被过滤后的文章)
-const sortedPosts = articlePosts.sort((a, b) => {
+// 3. 按发布日期从新到旧排序
+const sortedPosts = pagePosts.sort((a, b) => {
   const dateA = a.data.pubDate ? new Date(a.data.pubDate).getTime() : 0;
   const dateB = b.data.pubDate ? new Date(b.data.pubDate).getTime() : 0;
   return dateB - dateA;
 });
 
-// 5. 寻找置顶文章
+// 4. 寻找置顶文章
 const pinnedPost = sortedPosts.find(post => post.data.pinned === true) || sortedPosts[0];
 
-// 6. 统计标签数 (只统计“文章”里的标签)
+// 5. 统计标签数 (过滤掉空标签)
 const tagMap = {};
-articlePosts.forEach(post => {
+pagePosts.forEach(post => {
   const tags = post.data.tags || [];
   tags.forEach(tag => {
     tagMap[tag] = (tagMap[tag] || 0) + 1;
@@ -48,12 +52,25 @@ const sortedTags = Object.entries(tagMap)
       
       <header class="archive-title-section">
         <span class="sub-title">BLOG</span>
-        <h1 class="serif-font">文章</h1>
+        <h1 class="serif-font title-transition" id="page-main-title">文章</h1>
+        
+        <!-- 新增：文与思的分类筛选器 -->
+       <!-- 新增：文与思的分类筛选器 -->
+        <div class="category-filters">
+          <span class="cat-btn active" data-cat="all">全部</span>
+          <span class="cat-btn" data-cat="文">文</span>
+          <span class="cat-btn" data-cat="思">思</span>
+          <span class="cat-btn" data-cat="记">记</span> 
+          <p class="category-desc title-transition" id="category-desc-text">这里汇集了所有的记录与思考。</p>      
+        </div>
       </header>
 
-      <!-- 置顶文章 (同样应用高度折叠过渡样式) -->
+      <!-- 置顶文章 (加上 data-category 参与筛选) -->
       {pinnedPost && (
-        <div class="post-item pinned-item" data-tags={JSON.stringify(pinnedPost.data.tags || [])}>
+        <div class="post-item pinned-item" 
+             data-category={pinnedPost.data.category} 
+             data-tags={JSON.stringify(pinnedPost.data.tags || [])}
+             data-date={pinnedPost.data.pubDate ? new Date(pinnedPost.data.pubDate).getTime() : 0}>
           <h2 class="serif-font">
             <a href={`/blog/${pinnedPost.id}`}>{pinnedPost.data.title}</a>
           </h2>
@@ -68,18 +85,22 @@ const sortedTags = Object.entries(tagMap)
 
       <!-- 分割控制条 (文章统计 & 排序) -->
       <div class="list-control-bar">
-        <div class="total-count">共 {articlePosts.length} 篇</div>
+        <div class="total-count" id="post-count-display">共 {pagePosts.length} 篇</div>
         <div class="sort-options">
-          <span class="sort-btn active">最新</span>
-          <span class="sort-btn">最早</span>
-          <span class="sort-btn">最近更新</span>
+          <span class="sort-btn active" data-sort="newest">最新</span>
+          <span class="sort-btn" data-sort="oldest">最早</span>
+          <span class="sort-btn" data-sort="updated">最近更新</span>
         </div>
       </div>
 
-      <!-- 普通文章列表 (置顶文章也会在这里正常按时间顺序出现) -->
-      <div class="regular-posts-list">
+      <!-- 普通文章列表 -->
+      <div class="regular-posts-list" id="posts-list-container">
         {sortedPosts.map((post) => (
-          <div class="post-item" data-tags={JSON.stringify(post.data.tags || [])}>
+          <div class="post-item" 
+               data-category={post.data.category}
+               data-tags={JSON.stringify(post.data.tags || [])}
+               data-date={post.data.pubDate ? new Date(post.data.pubDate).getTime() : 0}
+               data-updated={post.data.updatedDate ? new Date(post.data.updatedDate).getTime() : (post.data.pubDate ? new Date(post.data.pubDate).getTime() : 0)}>
             <h3 class="serif-font">
               <a href={`/blog/${post.id}`}>{post.data.title}</a>
             </h3>
@@ -88,7 +109,6 @@ const sortedTags = Object.entries(tagMap)
               {post.data.pinned && <span class="pinned-tag-mini">置顶</span>}
               <span>{post.data.pubDate ? new Date(post.data.pubDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}</span>
               {post.data.category && <span class="category-text"> · {post.data.category}</span>}
-              {/* 渲染标签小药丸，加上 data-tag 方便 JS 获取 */}
               {post.data.tags && post.data.tags.slice(0, 3).map((tag) => (
                 <span class="tag-pill" data-tag={tag}>{tag}</span>
               ))}
@@ -99,20 +119,17 @@ const sortedTags = Object.entries(tagMap)
 
     </main>
 
-    <!-- 右侧：侧边栏 (搜索 + 热门标签云) -->
+    <!-- 右侧：侧边栏 -->
     <aside class="archive-sidebar">
       <div class="sidebar-sticky-card">
-        
-        <!-- 搜索框 -->
         <div class="search-box-wrapper">
           <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
-          <input type="text" placeholder="搜索文章标题..." id="search-input" />
+          <input type="text" placeholder="搜索文章标题..." id="search-input" autocomplete="off" />
         </div>
 
-        <!-- 动态热门标签云，增加 data-tag 用于绑定事件 -->
         <div class="sidebar-section">
           <div class="section-title">热门标签</div>
           <div class="tags-grid">
@@ -124,265 +141,196 @@ const sortedTags = Object.entries(tagMap)
           </div>
           <a href="#" class="all-tags-link" id="clear-tag-filter">清除标签过滤</a>
         </div>
-
       </div>
     </aside>
 
   </div>
 </BaseLayout>
 
-<!-- 客户端高级即时搜索与标签过滤联动脚本 -->
 <script>
-  const initSearchAndFilter = () => {
-    const searchInput = document.getElementById('search-input') as HTMLInputElement | null;
-    const postItems = document.querySelectorAll('.post-item') as NodeListOf<HTMLElement>;
-    const pinnedCard = document.querySelector('.pinned-item') as HTMLElement | null;
-    const tagBadges = document.querySelectorAll('.tag-badge') as NodeListOf<HTMLElement>;
-    const tagPills = document.querySelectorAll('.tag-pill') as NodeListOf<HTMLElement>;
-    const clearFilterBtn = document.getElementById('clear-tag-filter');
-
-    let searchQuery = '';
-    let activeTag = ''; // 记录当前激活的过滤标签
-
-    // 统一的联合过滤函数（支持“搜索词”与“标签”双重叠加过滤！）
-    const runFilter = () => {
-      postItems.forEach(item => {
-        const title = item.querySelector('h3, h2')?.textContent?.toLowerCase() || '';
-        const desc = item.querySelector('.post-desc')?.textContent?.toLowerCase() || '';
-        
-        // 读取当前卡片的 tags 数组
-        const rawTags = item.getAttribute('data-tags') || '[]';
-        const itemTags = JSON.parse(rawTags).map((t: string) => t.toLowerCase());
-
-        const matchesSearch = title.includes(searchQuery) || desc.includes(searchQuery);
-        const matchesTag = !activeTag || itemTags.includes(activeTag);
-
-        // 平滑折叠动画过渡
-        if (matchesSearch && matchesTag) {
-          item.classList.remove('filtered-out');
-        } else {
-          item.classList.add('filtered-out');
-        }
-      });
-    };
-
-    // 1. 监听搜索框输入法组合与输入事件
-    let isComposing = false;
-    searchInput?.addEventListener('compositionstart', () => { isComposing = true; });
-    searchInput?.addEventListener('compositionend', (e) => {
-      isComposing = false;
-      searchQuery = (e.target as HTMLInputElement).value.toLowerCase().trim();
-      runFilter();
-    });
-    searchInput?.addEventListener('input', (e) => {
-      if (isComposing) return;
-      searchQuery = (e.target as HTMLInputElement).value.toLowerCase().trim();
-      runFilter();
-    });
-
-    // 2. 监听右侧侧边栏标签云点击
-    tagBadges.forEach(badge => {
-      badge.addEventListener('click', () => {
-        const tag = badge.getAttribute('data-tag')?.toLowerCase() || '';
-        
-        if (activeTag === tag) {
-          // 如果点的是已经点过的，则取消过滤
-          activeTag = '';
-          badge.classList.remove('active');
-        } else {
-          // 激活新标签，并取消其他标签激活
-          activeTag = tag;
-          tagBadges.forEach(b => b.classList.remove('active'));
-          badge.classList.add('active');
-        }
-        runFilter();
-      });
-    });
-
-    // 3. 监听文章详情里的小药丸标签点击（神奇的联动效果！）
-    tagPills.forEach(pill => {
-      pill.addEventListener('click', (e) => {
-        e.stopPropagation(); // 阻止跳转文章，仅执行过滤
-        const tag = pill.getAttribute('data-tag')?.toLowerCase() || '';
-        
-        if (activeTag === tag) {
-          activeTag = '';
-          tagBadges.forEach(b => b.classList.remove('active'));
-        } else {
-          activeTag = tag;
-          // 让右侧侧边栏对应的标签同步亮起高亮
-          tagBadges.forEach(b => {
-            if (b.getAttribute('data-tag')?.toLowerCase() === tag) {
-              b.classList.add('active');
-            } else {
-              b.classList.remove('active');
-            }
-          });
-        }
-        runFilter();
-      });
-    });
-
-    // 4. 清除标签过滤
-    clearFilterBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      activeTag = '';
-      tagBadges.forEach(b => b.classList.remove('active'));
-      runFilter();
-    });
-  };
-
-  initSearchAndFilter();
-  document.addEventListener('astro:after-swap', initSearchAndFilter);
-
-
-// 文章搜索、标签过滤与排序功能的客户端
-  const initSearchAndFilterAndSort = () => {
-    const searchInput = document.getElementById('search-input');
+  const initBlogEngine = () => {
+    // DOM 元素获取 
+    const descEl = document.getElementById('category-desc-text');
+    const titleEl = document.getElementById('page-main-title');
+    const searchInput = document.getElementById('search-input') as HTMLInputElement;
+    const countDisplay = document.getElementById('post-count-display');
     const listContainer = document.getElementById('posts-list-container');
-    const postItems = document.querySelectorAll('.regular-posts-list .post-item');
-    const pinnedCard = document.querySelector('.pinned-item');
+    const postItems = document.querySelectorAll('.post-item') as NodeListOf<HTMLElement>;
+    const catBtns = document.querySelectorAll('.cat-btn');
     const tagBadges = document.querySelectorAll('.tag-badge');
     const tagPills = document.querySelectorAll('.tag-pill');
     const clearFilterBtn = document.getElementById('clear-tag-filter');
-    const sortButtons = document.querySelectorAll('.sort-btn');
-
-    let searchQuery = '';
-    let activeTag = ''; 
-
-    // 1. 联合过滤函数
-    const runFilter = () => {
-      postItems.forEach(item => {
-        const title = item.querySelector('h3, h2')?.textContent?.toLowerCase() || '';
-        const desc = item.querySelector('.post-desc')?.textContent?.toLowerCase() || '';
-        
-        const rawTags = item.getAttribute('data-tags') || '[]';
-        // 安全解析 JSON
-        let itemTags = [];
-        try { itemTags = JSON.parse(rawTags).map((t) => t.toLowerCase()); } catch (e) {}
-
-        const matchesSearch = title.includes(searchQuery) || desc.includes(searchQuery);
-        const matchesTag = !activeTag || itemTags.includes(activeTag);
-
-        if (matchesSearch && matchesTag) {
-          item.classList.remove('filtered-out');
-        } else {
-          item.classList.add('filtered-out');
-        }
-      });
+    const sortBtns = document.querySelectorAll('.sort-btn');
+    const catDescriptions = {
+      'all': '这里汇集了所有的记录与思考。',
+      '文': '正式撰写的文章与长篇论述。',
+      '思': '碎片化的想法、灵感与思考瞬间。',
+      '记': '日常生活、随笔与毫无主题的记录。'
     };
 
-    // 2. 搜索框监听 (完美避开 e.target 报错)
+    // 状态机 
+    let state = {
+      search: '',
+      tag: '',
+      cat: 'all' // 'all', '文', '思'
+    };
+
+    //  性能优化：预解析数据 
+    // 避免在每次过滤时进行高耗时的 DOM 查询和 JSON.parse
+    const itemDataCache = Array.from(postItems).map(item => {
+      let tags = [];
+      try { tags = JSON.parse(item.getAttribute('data-tags') || '[]').map(t => t.toLowerCase()); } catch(e){}
+      
+      const rawCat = item.getAttribute('data-category') || '';
+      // 归一化分类，将 "文章" 归类为 "文"
+      const normalizedCat = (rawCat === '文章' || rawCat === '文') ? '文' : rawCat;
+
+      return {
+        el: item,
+        title: item.querySelector('h3, h2')?.textContent?.toLowerCase() || '',
+        desc: item.querySelector('.post-desc')?.textContent?.toLowerCase() || '',
+        tags: tags,
+        cat: normalizedCat,
+        date: Number(item.getAttribute('data-date') || 0),
+        updated: Number(item.getAttribute('data-updated') || item.getAttribute('data-date') || 0)
+      };
+    });
+
+    //  核心过滤渲染 
+    const renderView = () => {
+      let visibleCount = 0;
+
+      itemDataCache.forEach(data => {
+        const matchesSearch = data.title.includes(state.search) || data.desc.includes(state.search);
+        const matchesTag = !state.tag || data.tags.includes(state.tag);
+        const matchesCat = state.cat === 'all' || data.cat === state.cat;
+
+        if (matchesSearch && matchesTag && matchesCat) {
+          data.el.classList.remove('filtered-out');
+          visibleCount++;
+        } else {
+          data.el.classList.add('filtered-out');
+        }
+      });
+
+      // 动态更新篇数统计
+      if(countDisplay) {
+        countDisplay.textContent = `共 ${visibleCount} 篇`;
+      }
+
+      if(titleEl && descEl) {
+        titleEl.classList.add('fade-out');
+        descEl.classList.add('fade-out');
+        setTimeout(() => {
+          titleEl.textContent = state.cat === 'all' ? '文章' : `文章.${state.cat}`;
+
+          descEl.textContent = catDescriptions[state.cat] || catDescriptions['all']; 
+          titleEl.classList.remove('fade-out');
+          descEl.classList.remove('fade-out');
+        }, 200); // 配合 CSS 中的 0.2s 动画
+      }
+    };
+
+    // 事件监听
+
+    // 1. 分类筛选
+    catBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        catBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.cat = btn.getAttribute('data-cat') || 'all';
+        renderView();
+      });
+    });
+
+    // 2. 搜索框 (处理中文输入法问题)
     let isComposing = false;
-    if (searchInput) {
+    if(searchInput) {
       searchInput.addEventListener('compositionstart', () => { isComposing = true; });
       searchInput.addEventListener('compositionend', () => {
         isComposing = false;
-        // 直接读取 input 本身的值，绝不报错
-        searchQuery = searchInput.value.toLowerCase().trim();
-        runFilter();
+        state.search = searchInput.value.toLowerCase().trim();
+        renderView();
       });
       searchInput.addEventListener('input', () => {
         if (isComposing) return;
-        searchQuery = searchInput.value.toLowerCase().trim();
-        runFilter();
+        state.search = searchInput.value.toLowerCase().trim();
+        renderView();
       });
     }
 
-    // 3. 标签云点击
+    // 3. 标签云与药丸联动
+    const updateTagUI = (targetTag: string) => {
+      state.tag = targetTag;
+      tagBadges.forEach(b => {
+        if (b.getAttribute('data-tag')?.toLowerCase() === targetTag) {
+          b.classList.add('active');
+        } else {
+          b.classList.remove('active');
+        }
+      });
+      renderView();
+    };
+
     tagBadges.forEach(badge => {
       badge.addEventListener('click', () => {
         const tag = badge.getAttribute('data-tag')?.toLowerCase() || '';
-        if (activeTag === tag) {
-          activeTag = '';
-          badge.classList.remove('active');
-        } else {
-          activeTag = tag;
-          tagBadges.forEach(b => b.classList.remove('active'));
-          badge.classList.add('active');
-        }
-        runFilter();
+        updateTagUI(state.tag === tag ? '' : tag);
       });
     });
 
-    // 4. 小药丸点击
     tagPills.forEach(pill => {
       pill.addEventListener('click', (e) => {
         e.stopPropagation(); 
+        e.preventDefault();
         const tag = pill.getAttribute('data-tag')?.toLowerCase() || '';
-        if (activeTag === tag) {
-          activeTag = '';
-          tagBadges.forEach(b => b.classList.remove('active'));
-        } else {
-          activeTag = tag;
-          tagBadges.forEach(b => {
-            if (b.getAttribute('data-tag')?.toLowerCase() === tag) {
-              b.classList.add('active');
-            } else {
-              b.classList.remove('active');
-            }
-          });
-        }
-        runFilter();
+        updateTagUI(state.tag === tag ? '' : tag);
       });
     });
 
-    // 5. 清除标签
     if (clearFilterBtn) {
       clearFilterBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        activeTag = '';
-        tagBadges.forEach(b => b.classList.remove('active'));
-        runFilter();
+        updateTagUI('');
       });
     }
 
-    // 6. 纯净版客户端平滑排序
-    sortButtons.forEach(btn => {
+    // 4. 排序逻辑
+    sortBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         if (!listContainer) return;
-
-        sortButtons.forEach(b => b.classList.remove('active'));
+        
+        sortBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-
         const sortType = btn.getAttribute('data-sort');
 
+        // 执行排序
         listContainer.classList.add('sorting-transition');
-
         setTimeout(() => {
-          const itemsArray = Array.from(postItems);
-
-          itemsArray.sort((a, b) => {
-            const dateA = Number(a.getAttribute('data-date') || 0);
-            const dateB = Number(b.getAttribute('data-date') || 0);
-            const updateA = Number(a.getAttribute('data-updated') || dateA);
-            const updateB = Number(b.getAttribute('data-updated') || dateB);
-
-            if (sortType === 'oldest') {
-              return dateA - dateB; 
-            } else if (sortType === 'updated') {
-              return updateB - updateA; 
-            } else {
-              return dateB - dateA; 
-            }
+          const regularItems = itemDataCache.filter(d => !d.el.classList.contains('pinned-item'));
+          
+          regularItems.sort((a, b) => {
+            if (sortType === 'oldest') return a.date - b.date;
+            if (sortType === 'updated') return b.updated - a.updated;
+            return b.date - a.date; // newest
           });
 
-          itemsArray.forEach(item => {
-            listContainer.appendChild(item);
+          regularItems.forEach(item => {
+            listContainer.appendChild(item.el); 
           });
-
+          
           listContainer.classList.remove('sorting-transition');
         }, 150);
+        
       });
     });
   };
 
-  initSearchAndFilterAndSort();
-  document.addEventListener('astro:after-swap', initSearchAndFilterAndSort);
-
+  // Astro 视图过渡支持
+  initBlogEngine();
+  document.addEventListener('astro:after-swap', initBlogEngine);
 </script>
 
-<!-- 精美、极致平滑的折叠动画样式 -->
 <style>
   .archive-layout {
     display: flex;
@@ -403,9 +351,11 @@ const sortedTags = Object.entries(tagMap)
     gap: 30px;
   }
 
+  /* 标题与分类区域重构 */
   .archive-title-section {
     text-align: left;
     margin-bottom: 10px;
+    position: relative;
   }
   .archive-title-section .sub-title {
     font-size: 0.7em;
@@ -413,27 +363,58 @@ const sortedTags = Object.entries(tagMap)
     color: var(--text-muted);
     font-weight: 600;
   }
-  .archive-title-section h1 {
+  
+  /* 动态标题过渡动画 */
+  .title-transition {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    opacity: 1;
+    transform: translateY(0);
     font-size: 2.2rem;
-    margin: 5px 0 0 0;
+    margin: 5px 0 15px 0;
     color: var(--text-color);
   }
+  .title-transition.fade-out {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
 
-  /*       = */
-  /*    核心动画点：不使用 display:none，使用 max-height 与 scale 折叠 */
-  /*       = */
+  /* 分类筛选器 UI */
+  .category-filters {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .cat-btn {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: rgba(128, 128, 128, 0.05);
+    transition: all 0.3s ease;
+  }
+  .cat-btn:hover {
+    color: var(--text-color);
+    background: rgba(128, 128, 128, 0.1);
+  }
+  .cat-btn.active {
+    color: #fff;
+    background: var(--accent-color);
+    font-weight: 500;
+    box-shadow: 0 2px 6px rgba(227, 13, 49, 0.2);
+  }
+
+  /* 核心动画点：不使用 display:none，使用 max-height 与 scale 折叠 */
   .post-item {
-    display: block !important; /* 强制保持 block，通过 max-height 进行高度裁切 */
+    display: block !important;
     opacity: 1;
-    max-height: 500px;         /* 足够容纳文章卡片的最大高度安全值 */
+    max-height: 500px;
     transform: translateY(0) scale(1);
-    overflow: hidden;          /* 保证超出高度的部分被切掉 */
+    overflow: hidden;
     padding-bottom: 25px;
     margin-bottom: 0;
     border-bottom: 1px dashed var(--border-color);
     text-align: left;
-
-    /* 优雅的高级缓动贝塞尔曲线 */
     transition: 
       opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1),
       transform 0.4s cubic-bezier(0.25, 1, 0.5, 1),
@@ -442,7 +423,6 @@ const sortedTags = Object.entries(tagMap)
       border-color 0.4s ease;
   }
 
-  /*    核心折叠类：当文章被排除时，高度瞬间变为0，并且淡出、缩放位移 */
   .post-item.filtered-out {
     opacity: 0 !important;
     max-height: 0 !important;
@@ -450,37 +430,25 @@ const sortedTags = Object.entries(tagMap)
     padding-bottom: 0 !important;
     margin-bottom: 0 !important;
     border-bottom-color: transparent !important;
-    pointer-events: none;      /* 隐藏后禁用所有鼠标点击 */
+    pointer-events: none;
   }
 
-  /* 置顶文章单独间距 */
   .pinned-item {
     border-bottom-style: solid;
   }
-
   .pinned-item h2 {
     font-size: 1.55rem;
     margin: 0 0 8px 0;
     font-weight: 500;
   }
-
-  .pinned-item h2 a {
-    color: var(--text-color)!important;
+  .pinned-item h2 a, .post-item h3 a {
+    color: var(--text-color) !important;
     text-decoration: none;
     transition: color 0.2s;
   }
-  .pinned-item h2 a:hover {
-    color: var(--accent-color)!important;
+  .pinned-item h2 a:hover, .post-item h3 a:hover {
+    color: var(--accent-color) !important;
   }
-
-  .post-item h3 a {
-  color: var(--text-color) !important; 
-  text-decoration: none;
-  transition: color 0.2s;
-}
-.post-item h3 a:hover {
-  color: var(--accent-color) !important; 
-}
 
   .pinned-tag {
     background: rgba(244, 63, 94, 0.08) !important;
@@ -519,7 +487,6 @@ const sortedTags = Object.entries(tagMap)
     margin-top: 4px;
   }
 
-  /* 分割控制条 */
   .list-control-bar {
     display: flex;
     justify-content: space-between;
@@ -527,7 +494,7 @@ const sortedTags = Object.entries(tagMap)
     font-size: 0.8rem;
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 12px;
-    margin-top: 15px;
+    margin-top: 5px;
     color: var(--text-muted);
   }
 
@@ -540,20 +507,21 @@ const sortedTags = Object.entries(tagMap)
     cursor: pointer;
     transition: color 0.2s;
   }
-
   .sort-btn:hover, .sort-btn.active {
     color: var(--accent-color);
     font-weight: 500;
   }
 
-  /* 列表容器 */
   .regular-posts-list {
     display: flex;
     flex-direction: column;
-    gap: 10px; /* 缩小间距，靠 max-height 的 padding 支撑，折叠更丝滑 */
+    gap: 10px;
+    transition: opacity 0.2s ease;
+  }
+  .regular-posts-list.sorting-transition {
+    opacity: 0.3;
   }
 
-  /* 标签小药丸（使其可点击） */
   .tag-pill {
     background: rgba(128, 128, 128, 0.08);
     color: var(--text-muted);
@@ -564,7 +532,7 @@ const sortedTags = Object.entries(tagMap)
     transition: all 0.2s ease;
   }
   .tag-pill:hover {
-    background: rgba(227, 13, 49, 0.546);
+    background: rgba(227, 13, 49, 0.1);
     color: var(--accent-color);
   }
 
@@ -572,7 +540,6 @@ const sortedTags = Object.entries(tagMap)
   .archive-sidebar {
     width: 220px;
   }
-
   .sidebar-sticky-card {
     position: sticky;
     top: 100px;
@@ -583,7 +550,6 @@ const sortedTags = Object.entries(tagMap)
     text-align: left;
   }
 
-  /* 搜索框 */
   .search-box-wrapper {
     display: flex;
     align-items: center;
@@ -593,12 +559,14 @@ const sortedTags = Object.entries(tagMap)
     padding: 8px 14px;
     border-radius: 8px;
     color: var(--text-muted);
+    transition: border-color 0.3s ease;
   }
-
+  .search-box-wrapper:focus-within {
+    border-color: var(--accent-color);
+  }
   .search-icon {
     flex-shrink: 0;
   }
-
   .search-box-wrapper input {
     background: none;
     border: none;
@@ -609,13 +577,11 @@ const sortedTags = Object.entries(tagMap)
     font-family: inherit;
   }
 
-  /* 热门标签云 */
   .sidebar-section {
     display: flex;
     flex-direction: column;
     gap: 15px;
   }
-
   .section-title {
     font-size: 0.8rem;
     font-weight: bold;
@@ -628,7 +594,6 @@ const sortedTags = Object.entries(tagMap)
     flex-wrap: wrap;
     gap: 8px;
   }
-
   .tag-badge {
     background: rgba(128, 128, 128, 0.05);
     border: 1px solid var(--border-color);
@@ -639,26 +604,22 @@ const sortedTags = Object.entries(tagMap)
     cursor: pointer;
     transition: all 0.2s ease;
   }
-
   .tag-badge:hover {
     color: var(--accent-color);
     border-color: var(--accent-color);
     transform: translateY(-1px);
   }
-
-  /*    标签云点击激活时的高亮样式 */
   .tag-badge.active {
     background: var(--accent-color) !important;
     color: #fff !important;
     border-color: var(--accent-color) !important;
     transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(227, 13, 49, 0.2);
   }
-
   .tag-count {
     font-size: 0.7rem;
     opacity: 0.7;
   }
-
   .all-tags-link {
     font-size: 0.75rem;
     color: var(--text-muted);
@@ -667,6 +628,15 @@ const sortedTags = Object.entries(tagMap)
   }
   .all-tags-link:hover {
     color: var(--text-color);
+  }
+  /* 分区介绍小字样式 */
+  .category-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 15px; /* 与上方过滤按钮的间距 */
+    line-height: 1.6;
+    letter-spacing: 0.5px;
+    font-style: italic; /* 如果不需要斜体可以删掉这行 */
   }
 
   @media (max-width: 768px) {
@@ -678,6 +648,4 @@ const sortedTags = Object.entries(tagMap)
       display: none;
     }
   }
-
 </style>
-
