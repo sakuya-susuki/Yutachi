@@ -1,19 +1,24 @@
 ---
+// src/pages/blog/[...slug].astro (或者你用于渲染文章详情的那个文件)
 import { getCollection, render } from 'astro:content';
-// 1. 暂时注释掉 Notion API 的导入
-// import { getPosts } from '../../lib/notion.js';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ScrollProgress from '../../components/ScrollProgress.astro';
 
+
+// [TODO: Notion API 接入] 
+// 1. 取消下方注释以导入 Notion 获取逻辑
+// import { getPosts } from '../../lib/notion.js';
+
+
 export async function getStaticPaths() {
-  // 2. 获取本地 Markdown 路径
   const localEntries = await getCollection('blog');
+  const pureBlogEntries = localEntries.filter(e => !e.id.startsWith('index of book/'));
   const localPaths = localEntries.map(e => ({ 
     params: { slug: e.id.replace(/\.md$/, '') }, 
     props: { source: 'local', entry: e } 
   }));
 
-  // --- 下面是 Notion 相关的路由生成代码，暂时注释掉 ---
+  // [TODO: Notion API 接入] 
   // const notionPosts = await getPosts();
   // const notionPaths = notionPosts.map(p => ({ 
   //   params: { slug: p.id }, 
@@ -21,20 +26,20 @@ export async function getStaticPaths() {
   // }));
   // return [...localPaths, ...notionPaths];
 
-  // 3. 目前仅返回本地文章的路由
   return localPaths;
 }
 
 const { source, entry } = Astro.props;
 
-// 4. 渲染内容 (目前 source 只会是 'local')
-const { Content } = source === 'local' ? await render(entry) : { Content: null };
 
-// 5. 标题与描述处理
-const title = source === 'local' ? entry.data.title : 'Notion 文章';
-const description = source === 'local' ? entry.data.description : 'Notion 描述';
+//  核心修复点 1：使用 await render(entry) 时，同时解构出 headings
 
-// 后续用于 Notion 转换的占位符，暂时留空
+const { Content, headings } = source === 'local' ? await render(entry) : { Content: null, headings: [] };
+
+const title = source === 'local' ? entry.data.title : (entry?.title || 'Notion 文章');
+const description = source === 'local' ? entry.data.description : (entry?.description || 'Notion 描述');
+const category = source === 'local' ? (entry.data.category || '文章') : 'Notion';
+
 const notionHtml = ""; 
 ---
 
@@ -44,14 +49,14 @@ const notionHtml = "";
     <article>
       <header style="margin-bottom: 30px; display: flex; flex-direction: column; gap: 10px;">
         <span class="sub-title" style="font-size: 0.8em; color: var(--accent-color, #d33a50); letter-spacing: 2px;">
-          | {source === 'local' ? (entry.data.category || '文章') : 'Notion 文章'}
+          | {category}
         </span>
         <h1 class="serif-font" style="font-size: 2.2em; margin: 0; line-height: 1.4; font-weight: 400;">
           {title}
         </h1>
-        {source === 'local' && (
+        {source === 'local' && entry.data.pubDate && (
           <time style="color: var(--text-muted, #858585); font-size: 0.9em;">
-            | {entry.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+            | {new Date(entry.data.pubDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
           </time>
         )}
       </header>
@@ -73,32 +78,104 @@ const notionHtml = "";
     </article>
   </div>
 
-  <ScrollProgress />
+  <!--  核心修复点 2：把拿到的 headings 传给组件 -->
+
+  <ScrollProgress headings={headings} />
+
 </BaseLayout>
 
-<!-- Waline 样式 -->
 <link rel="stylesheet" href="https://unpkg.com/@waline/client@v3/dist/waline.css" />
 
 <style is:global>
-  /* 你的 CSS 保持原样不变 */
+  /* Waline 深度主题色彩统一 */
   :root {
-    --waline-theme-color: var(--accent-color) !important;
-    --waline-active-color: var(--accent-color) !important;
-    --waline-color: var(--text-color) !important;
-    --waline-bgcolor: transparent !important;
-    --waline-border-color: var(--border-color) !important;
+    --wa-theme-color: var(--accent-color, #d33a50) !important;
+    --wa-active-color: var(--accent-color, #d33a50) !important;
+    --wa-color: var(--text-color) !important;
+    --wa-info-color: var(--text-muted, #858585) !important;
+    --wa-bgcolor: transparent !important;
+    --wa-bgcolor-light: rgba(128, 128, 128, 0.03) !important; 
+    --wa-border-color: var(--border-color, #eef0f2) !important;
+    --wa-box-shadow: none !important;
   }
-  /* ...此处省略你原有的其他样式，保持完整... */
+  #waline .wl-panel {
+    border: none !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border-bottom: 1px solid var(--border-color, #eef0f2) !important;
+    padding-bottom: 15px !important;
+    margin-bottom: 20px !important;
+  }
+  #waline .wl-header {
+    border-bottom: none !important;
+  }
+  #waline .wl-header .wl-header-item {
+    background: rgba(128, 128, 128, 0.04) !important;
+    border: none !important;
+    border-radius: 6px !important;
+    color: var(--text-color) !important;
+  }
+  #waline ::-webkit-input-placeholder {
+    color: var(--text-muted, #858585) !important;
+    opacity: 0.7 !important;
+  }
+  #waline .wl-editor {
+    background: rgba(128, 128, 128, 0.04) !important;
+    border-radius: 8px !important;
+    padding: 12px !important;
+    margin-top: 8px !important;
+    color: var(--text-color) !important;
+  }
+  #waline .wl-btn.primary {
+    background: var(--accent-color, #d33a50) !important;
+    border: none !important;
+    color: #ffffff !important;
+    border-radius: 6px !important;
+    transition: opacity 0.3s ease !important;
+  }
+  #waline .wl-btn.primary:hover {
+    opacity: 0.8 !important;
+    background: var(--accent-color, #d33a50) !important;
+  }
+  #waline .wl-cards .wl-card {
+    border-bottom: 1px dashed var(--border-color, #eef0f2) !important; 
+  }
+  #waline .wl-meta-head, 
+  #waline .wl-time, 
+  #waline .wl-badge {
+    color: var(--text-muted, #858585) !important;
+  }
+  #waline .wl-badge {
+    border-color: rgba(128, 128, 128, 0.2) !important;
+    background: rgba(128, 128, 128, 0.05) !important;
+  }
+  #waline .wl-action svg {
+    fill: var(--text-muted, #858585) !important; 
+    transition: fill 0.2s ease !important;
+  }
+  #waline .wl-action.active svg,
+  #waline .wl-action:hover svg {
+    fill: var(--accent-color, #d33a50) !important; 
+  }
 </style>
 
 <script type="module">
   import { init } from 'https://unpkg.com/@waline/client@v3/dist/waline.js';
+  
   const initWaline = () => {
     const el = document.getElementById('waline');
     if (el) {
-      init({ el, serverURL: 'https://comment.ksay.dpdns.org', login: 'disable', emoji: ['https://unpkg.com/@waline/emojis@1.2.0/bilibili'] });
+      init({ 
+        el, 
+        serverURL: 'https://comment.ksay.dpdns.org', 
+        login: 'disable', 
+        emoji: ['https://unpkg.com/@waline/emojis@1.2.0/bilibili'],
+        dark: 'html[class="dark"]' 
+      });
     }
   };
+  
   initWaline();
   document.addEventListener('astro:after-swap', initWaline);
 </script>

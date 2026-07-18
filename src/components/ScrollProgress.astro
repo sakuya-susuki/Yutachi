@@ -9,31 +9,27 @@ const { headings = [] } = Astro.props;
 
 <div class="combined-sidebar-container">
   
-  <!-- 1. 左侧：文章大纲文本区 (平时隐藏，悬浮显示) -->
+  <!-- 左侧：文章大纲文本区 -->
   <div class="toc-panel">
     <div class="toc-header">OUTLINE</div>
     <ul class="toc-list">
       {headings
-        .filter((h) => h.depth <= 3) // 只过滤显示 H1, H2, H3
+        .filter((h) => h.depth <= 3) 
         .map((h) => (
           <li class={`toc-item depth-${h.depth}`}>
-            <a href={`#${h.slug}`}>{h.text}</a>
+            <a href={`#${h.slug}`} data-slug={h.slug}>{h.text}</a>
           </li>
         ))
       }
     </ul>
   </div>
 
-  <!-- 2. 右侧：数轴进度条（作为大纲的分割线与进度仪） -->
+  <!-- 右侧：数轴进度条 -->
   <div class="axis-panel">
     <div class="scroll-axis-track">
-      <!-- 已经滚动的填充线 -->
       <div class="scroll-axis-fill"></div>
-      <!-- 随滚动上下移动的数轴小圆点 -->
       <div class="scroll-axis-dot"></div>
     </div>
-
-    <!-- 数轴下方的回到顶部按钮 -->
     <button id="back-to-top" class="axis-to-top-btn" aria-label="回到顶部">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="18 15 12 9 6 15"></polyline>
@@ -43,33 +39,83 @@ const { headings = [] } = Astro.props;
 
 </div>
 
-<!-- 脚本逻辑 -->
 <script>
   const setupAxisWidget = () => {
     const axisFill = document.querySelector('.scroll-axis-fill') as HTMLElement | null;
     const axisDot = document.querySelector('.scroll-axis-dot') as HTMLElement | null;
     const backToTopBtn = document.getElementById('back-to-top');
+    const tocLinks = document.querySelectorAll('.toc-item a');
 
     if (!axisFill || !axisDot) return;
 
+    // === 优化 1：使用 requestAnimationFrame 打造极致丝滑的滚动性能 ===
+    let ticking = false;
     const updateProgress = () => {
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
       const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
       
-      if (docHeight <= 0) return;
-
-      const percent = Math.min((scrollTop / docHeight) * 100, 100);
-      axisFill.style.height = `${percent}%`;
-      axisDot.style.top = `${percent}%`;
+      if (docHeight > 0) {
+        const percent = Math.min((scrollTop / docHeight) * 100, 100);
+        // 使用 CSS 变量或 transform 替代直接修改 height/top 能进一步触发 GPU 加速，但直接改也很高效了
+        axisFill.style.height = `${percent}%`;
+        axisDot.style.top = `${percent}%`;
+      }
+      ticking = false;
     };
 
-    window.addEventListener('scroll', updateProgress);
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateProgress);
+        ticking = true;
+      }
+    };
+
+    // passive: true 告诉浏览器此监听器不会阻塞滚动，提升页面滑动流畅度
+    window.addEventListener('scroll', onScroll, { passive: true });
     updateProgress();
 
+    // === 优化 2：返回顶部平滑滚动 ===
     backToTopBtn?.addEventListener('click', () => {
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // === 优化 3：Intersection Observer 自动高亮当前阅读目录 ===
+    if (tocLinks.length > 0 && window.IntersectionObserver) {
+      // 收集所有标题 DOM
+      const headings = Array.from(tocLinks).map(link => {
+        const slug = link.getAttribute('data-slug');
+        return document.getElementById(slug || '');
+      }).filter(Boolean) as HTMLElement[];
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              // 移除所有激活状态
+              tocLinks.forEach(link => link.classList.remove('active'));
+              // 找到当前进入视口的标题对应的 TOC 链接
+              const activeLink = document.querySelector(`.toc-item a[data-slug="${entry.target.id}"]`);
+              activeLink?.classList.add('active');
+            }
+          });
+        },
+        // 当标题到达视口顶部往下 15% 到 80% 的区间时触发高亮
+        { rootMargin: '-15% 0px -80% 0px' }
+      );
+
+      headings.forEach(heading => observer.observe(heading));
+    }
+    
+    // 点击目录时平滑滚动 (避免默认跳转的生硬感)
+    tocLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const slug = link.getAttribute('data-slug');
+        const target = document.getElementById(slug || '');
+        if (target) {
+          const top = target.getBoundingClientRect().top + window.scrollY - 80; // 留出 80px 的顶部缓冲
+          window.scrollTo({ top, behavior: 'smooth' });
+        }
       });
     });
   };
@@ -79,49 +125,29 @@ const { headings = [] } = Astro.props;
 </script>
 
 <style>
-  /*       = */
-  /* 外层总容器：固定悬浮在右侧 */
-  /*       = */
   .combined-sidebar-container {
     position: fixed;
     top: 50%;
-    right: 30px;               /* 距离屏幕右侧距离 */
+    right: 30px;
     transform: translateY(-50%);
     z-index: 100;
-
     display: flex;
-    align-items: center;       /* 水平排列：[大纲文本] + [数轴进度条] */
+    align-items: center;
     gap: 20px;
     padding: 20px 10px;
   }
 
-  /*       = */
-  /* 动效核心 1：左侧大纲面板的平滑出现与延迟消失 */
-  /*       = */
   .toc-panel {
     max-width: 180px;
-    
-    /* 默认状态：完全隐藏、向右微调位移 */
     opacity: 0;
     pointer-events: none;
     transform: translateX(15px);
-    
-    /* 离开时：使用贝塞尔曲线获得慢速柔和效果，并设置 1.5 秒的缓冲停留时间 */
     transition: 
       opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1),
       transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
-    transition-delay: 1.5s;    /
+    transition-delay: 1.2s; 
   }
 
-  /* 鼠标悬浮时：立即显示，无延迟 */
-  .combined-sidebar-container:hover .toc-panel {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateX(0);
-    transition-delay: 0s;      /* 悬浮瞬间立即出现 */
-  }
-
-  /* 大纲内部样式 */
   .toc-header {
     font-size: 0.7rem;
     letter-spacing: 2px;
@@ -136,86 +162,78 @@ const { headings = [] } = Astro.props;
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
   }
 
   .toc-item a {
     text-decoration: none;
     color: var(--text-muted, #858585);
     font-size: 0.8rem;
-    transition: color 0.2s ease;
+    transition: all 0.2s ease;
     display: block;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    border-left: 2px solid transparent; /* 为高亮做准备 */
+    padding-left: 4px;
   }
 
   .toc-item a:hover {
     color: var(--text-color, #1a1a1a);
   }
 
+  /* 新增：当前阅读到的标题高亮状态 */
+  .toc-item a.active {
+    color: var(--accent-color, #d33a50);
+    border-left-color: var(--accent-color, #d33a50);
+    font-weight: 500;
+    transform: translateX(2px);
+  }
+
   .depth-3 { padding-left: 12px; }
 
-  /*       = */
-  /* 动效核心 2：右侧数轴栏的平移与回弹 */
-  /*       = */
   .axis-panel {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 14px;
-
-    /* 默认状态：没有触碰时，向右侧平移收缩，贴紧边缘，只显示进度条 */
     transform: translateX(35px); 
-    
-    /* 离开时：1.5 秒缓冲延迟 */
     transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
-    transition-delay: 1.5s;    
+    transition-delay: 1.2s;    
   }
 
-  /* 鼠标悬浮时：数轴向左平移归位，给大纲腾出展示空间 */
-  .combined-sidebar-container:hover .axis-panel {
-    transform: translateX(0);
-    transition-delay: 0s;      /* 悬浮时数轴立即向左复位 */
-  }
-
-  /* 数轴线轨道样式 */
   .scroll-axis-track {
     width: 2px;
-    height: 140px;             /* 数轴总高度 */
+    height: 140px;
     background-color: var(--border-color, #eef0f2);
     position: relative;
     border-radius: 1px;
   }
 
-  /* 填充轨道线 */
   .scroll-axis-fill {
     width: 100%;
     height: 0%;
-    background-color: var(--primary-color, #d33a50);
+    background-color: var(--accent-color, #d33a50);
     position: absolute;
     top: 0;
     left: 0;
     border-radius: 1px;
-    transition: height 0.08s linear;
   }
 
-  /* 数轴小圆点 */
   .scroll-axis-dot {
     width: 8px;
     height: 8px;
-    background-color: var(--primary-color, #d33a50);
-    border: 2px solid var(--bg-color, #121212);
+    background-color: var(--accent-color, #d33a50);
+    border: 2px solid var(--bg-color, #fff); /* 使用白色背景作为描边更清晰 */
     border-radius: 50%;
     position: absolute;
     left: 50%;
     top: 0%;
     transform: translate(-50%, -50%);
-    transition: top 0.08s linear;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    transition: width 0.2s, height 0.2s;
   }
 
-  /* 回到顶部按钮 */
   .axis-to-top-btn {
     background: none;
     border: none;
@@ -235,21 +253,59 @@ const { headings = [] } = Astro.props;
     transform: translateY(-2px);
   }
 
-  /*       = */
-  /* 手机端响应式适配：手机上不适合 Hover，强制保持“仅显示进度数轴” */
-  /*       = */
+  /* === 仅在支持鼠标悬浮的设备上启用交互动画 (保护移动端) === */
+  @media (hover: hover) and (pointer: fine) {
+    .combined-sidebar-container:hover .toc-panel {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+      transition-delay: 0s;
+    }
+    .combined-sidebar-container:hover .axis-panel {
+      transform: translateX(0);
+      transition-delay: 0s;
+    }
+  }
+
+  /* === 移动端极致适配 === */
   @media (max-width: 1024px) {
     .combined-sidebar-container {
-      right: 16px;
+      /* 手机端移至屏幕最右下角，避免干扰阅读 */
+      top: auto;
+      bottom: 20px;
+      right: 12px;
+      transform: none;
+      padding: 10px 5px;
+      background: rgba(255, 255, 255, 0.6); /* 毛玻璃背板，防遮挡文字 */
+      backdrop-filter: blur(8px);
+      border-radius: 20px;
+      border: 1px solid var(--border-color, #eef0f2);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
+
     .toc-panel {
-      display: none !important; /* 手机端强制不加载文字大纲 */
+      display: none !important; /* 手机端空间有限，隐藏大纲 */
     }
+
     .axis-panel {
-      transform: translateX(0) !important; /* 手机端数轴固定不发生位移 */
+      /* 手机上永远保持显示，不发生位移 */
+      transform: translateX(0) !important; 
+      gap: 10px;
     }
+
     .scroll-axis-track {
-      height: 95px;            /* 手机端缩短高度更紧凑 */
+      height: 60px; /* 进度条大幅缩短 */
+      background-color: rgba(128, 128, 128, 0.15);
+    }
+    
+    .scroll-axis-dot {
+      /* 手机端放大触控点， */
+      width: 10px;
+      height: 10px;
+    }
+
+    .axis-to-top-btn {
+      padding: 4px; /* 缩小按钮*/
     }
   }
 </style>
