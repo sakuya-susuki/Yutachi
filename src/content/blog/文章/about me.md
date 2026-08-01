@@ -55,7 +55,7 @@ Ksay——源于对“Sayaka“一词的重组
 
 （我也不知道为什么大家都喜欢写这种，那我也写一下吧。虽然感觉有些人写这个像是在展示财力。）
 
-## ## 手机
+## 手机
 
 ReadMi K50
 
@@ -63,13 +63,13 @@ Vivo S20
 
 （N/A）隐私用机
 
-## ## 电脑
+## 电脑
 
-Think Pad X230 （[*Cachy*](https://www.bilibili.com/video/BV1aKrMB1EKu/?spm_id_from=333.1391.0.0)OS）
+1. Think Pad X230 （CachyOS）
 
 ASUS 天选5 Pro（Win11）
 
-## ## 耳机
+## 耳机
 
 天使吉米 bunny
 
