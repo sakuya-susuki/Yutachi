@@ -55,7 +55,7 @@ Ksay——源于对“Sayaka“一词的重组
 
 （我也不知道为什么大家都喜欢写这种，那我也写一下吧。虽然感觉有些人写这个像是在展示财力。）
 
-## 手机
+## ## 手机
 
 ReadMi K50
 
@@ -63,13 +63,13 @@ Vivo S20
 
 （N/A）隐私用机
 
-## 电脑
+## ## 电脑
 
 Think Pad X230 （[*Cachy*](https://www.bilibili.com/video/BV1aKrMB1EKu/?spm_id_from=333.1391.0.0)OS）
 
 ASUS 天选5 Pro（Win11）
 
-## 耳机
+## ## 耳机
 
 天使吉米 bunny
 
@@ -81,7 +81,7 @@ ASUS 天选5 Pro（Win11）
 
 漫步者无线
 
-# 技能 栈、
+# 技能 技术栈
 
 其实现在会多少已经无所谓了，重点是在和agent合作时还记得知识，知道怎么改。
 在现在学会如何和AI高效工作才是最重要（省毕竟token也是钱）
@@ -143,7 +143,7 @@ ASUS 天选5 Pro（Win11）
 - Vue.js / React
 - FastAPI, Flask
   同时
-  熟练掌握以下渠道的复制粘贴：
+  信息收集渠道
 - Google Search
 - GitHub
 - Stack Overflow

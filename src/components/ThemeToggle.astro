@@ -43,7 +43,7 @@
       // 1. 判断浏览器是否支持现代 View Transition API，以及用户是否没有开启“减少动画限制”
       const isTransition = document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      // 如果不支持 View Transition，直接走优雅的 CSS 变量渐变平滑过渡 (我们在第一步里写的)
+      // 如果不支持 View Transition，使用CSS 变量渐变平滑过渡 
       if (!isTransition) {
         el.setAttribute('data-theme', nextTheme);
         localStorage.setItem('theme', nextTheme);
