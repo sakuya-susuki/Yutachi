@@ -1,0 +1,415 @@
+/* ── 全局布局样式 ──────────────────────────────
+   导航栏、页脚、粒子画布、全局重置。
+   由 BaseLayout.astro 通过 import 引入。
+   ─────────────────────────────────────────── */
+
+/* ── 全局重置 ── */
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden; /* 封锁 html 层的横向溢出 */
+}
+
+body {
+  background-color: var(--bg-color) !important;
+  color: var(--text-color) !important;
+  margin: 0;
+  font-family: var(--font-sans);
+  position: relative;
+  overflow-x: hidden;
+  transition: var(--transition-color);
+}
+
+/* 主题切换时大块元素平滑过渡 */
+.header,
+.footer,
+a,
+span,
+h1,
+h2,
+h3,
+h4,
+p {
+  transition: var(--transition-color);
+}
+
+/* 全局交互聚焦环（键盘访问与交互一致性） */
+:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* 全局字体工具类（项目原生字体体系） */
+.serif-font {
+  font-family: var(--font-serif) !important;
+}
+
+.italic-text {
+  font-style: italic;
+  font-family: Georgia, serif;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: var(--radius-xs);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(83, 68, 68, 0.34);
+}
+
+/* ── 粒子画布 ── */
+#particle-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;  /* 用 100% 而非 100vw，避免滚动条宽度导致横向溢出 */
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ── 顶部导航栏 ── */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background-color: var(--bg-color) !important;
+  opacity: 0.95;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.nav {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 15px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+
+.logo {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color) !important;
+  text-decoration: none;
+  letter-spacing: 1px;
+  transition: color 0.3s ease;
+}
+
+/* 菜单包裹器：撑满中间，使链接绝对居中 */
+.nav-menu-wrapper {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-center {
+  display: flex;
+  gap: 25px;
+}
+
+.nav-center a {
+  color: var(--text-muted) !important;
+  text-decoration: none;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
+  transition: color 0.2s ease;
+}
+
+.nav-center a:hover,
+.nav-center a.active {
+  color: var(--text-color) !important;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 电脑端隐藏汉堡按钮 */
+.hamburger-btn {
+  display: none;
+}
+
+/* ── 页脚 ── */
+.footer {
+  border-top: 1px solid var(--border-color) !important;
+  padding-top: 120px;
+  background-color: var(--bg-color) !important;
+}
+
+.footer-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 24px 60px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 60px;
+}
+
+.footer-action-zone {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 35px;
+}
+
+.action-title {
+  font-size: 1.8em;
+  letter-spacing: 0.15em;
+  color: var(--text-color) !important;
+}
+
+.pink-dot {
+  color: var(--accent-color);
+  font-size: 0.5em;
+  vertical-align: super;
+  margin-left: 5px;
+}
+
+.action-grid {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.action-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.action-label,
+.action-sub {
+  font-size: 0.85em;
+  color: var(--text-muted) !important;
+  letter-spacing: 0.1em;
+}
+
+.vertical-divider {
+  height: 30px;
+  width: 1px;
+  background-color: var(--border-color);
+}
+
+.action-sublinks {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.action-sublinks a {
+  color: var(--text-muted) !important;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.action-sublinks a:hover {
+  color: var(--text-color) !important;
+}
+
+.footer-line {
+  border: none;
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 0;
+}
+
+.footer-meta-grid {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 40px;
+}
+
+.meta-left {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.brand-logo {
+  font-size: 1.5em;
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.brand-motto {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  margin: 0;
+}
+
+.copyright {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  margin: 5px 0 0 0;
+}
+
+.live-counter {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.green-dot {
+  color: #00ffaa;
+  font-size: 0.7em;
+}
+
+.meta-right-links {
+  display: flex;
+  flex-direction: row;
+  gap: 60px;
+}
+
+.link-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.link-group h4 {
+  font-size: 0.85em;
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.link-group a {
+  font-size: 0.85em;
+  color: var(--text-muted) !important;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.link-group a:hover {
+  color: var(--text-color) !important;
+}
+
+.footer-compliance-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+/* ── 手机端（平板 + 手机，≤768px）── */
+@media (max-width: 768px) {
+
+  /* ── 导航：显示汉堡按钮，收起文字菜单 ── */
+  .hamburger-btn {
+    display: block !important;
+    background: none !important;
+    border: none !important;
+    color: var(--text-color) !important;
+    cursor: pointer !important;
+    padding: 6px !important;
+    border-radius: var(--radius-md) !important;
+    z-index: 1001 !important;
+    transition: background-color var(--transition-fast), transform var(--transition-fast) !important;
+  }
+  .hamburger-btn:active { transform: scale(0.92) !important; }
+
+  .nav-actions { gap: 4px !important; }
+
+  /* 菜单下拉抽屉（默认折叠，.open 时展开） */
+  .nav-menu-wrapper {
+    position: absolute !important;
+    top: 100% !important;
+    left: 0 !important;
+    width: 100% !important;
+    flex-direction: column !important;
+    background-color: var(--bg-color) !important;
+    border-bottom: 1px solid transparent !important;
+    max-height: 0 !important;
+    opacity: 0 !important;
+    overflow: hidden !important;
+    padding: 0 20px !important;
+    pointer-events: none !important;
+    transition:
+      max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+      opacity 0.3s ease,
+      padding 0.3s ease !important;
+  }
+  .nav-menu-wrapper.open {
+    max-height: 260px !important;
+    opacity: 1 !important;
+    padding: 16px 20px 20px 20px !important;
+    border-bottom-color: var(--border-color) !important;
+    box-shadow: var(--shadow-lg) !important;
+    pointer-events: auto !important;
+  }
+  .nav-center {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 14px !important;
+    width: 100% !important;
+  }
+
+  /* ── 文章侧边栏折叠（不占用阅读空间）── */
+  .post-sidebar { display: none !important; }
+
+  /* ── 页脚：垂直堆叠 ── */
+  .footer-action-zone { padding: 0 20px; }
+  .action-grid {
+    flex-direction: column !important;
+    gap: 16px !important;
+    align-items: center !important;
+  }
+  .vertical-divider { width: 40px; height: 1px; } /* 横分割线 */
+  .footer-meta-grid {
+    flex-direction: column;
+    gap: 30px;
+  }
+  .meta-right-links {
+    width: 100%;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .footer-compliance-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+/* ── iPhone 13 精准适配（≤390px，逻辑像素）── */
+@media (max-width: 390px) {
+
+  /* 导航左右内边距收窄，给内容更多横向空间 */
+  .nav { padding: 12px 16px !important; }
+
+  /* Logo 字号微缩，防溢出 */
+  .logo { font-size: 1.1rem !important; }
+
+  /* 页脚链接组横向均分 */
+  .meta-right-links {
+    gap: 0 !important;
+    justify-content: space-around !important;
+  }
+
+  /* 品牌区字号收窄 */
+  .brand-logo { font-size: 1.2em !important; }
+  .action-title { font-size: 1.5em !important; }
+}

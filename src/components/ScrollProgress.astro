@@ -267,45 +267,49 @@ const { headings = [] } = Astro.props;
     }
   }
 
-  /* === 移动端极致适配 === */
+  /* === 手机端适配 === */
   @media (max-width: 1024px) {
     .combined-sidebar-container {
-      /* 手机端移至屏幕最右下角，避免干扰阅读 */
+      /* 右下角悬浮，去掉胶囊背板，只保留裸轴 */
       top: auto;
-      bottom: 20px;
-      right: 12px;
+      bottom: 24px;
+      right: 14px;
       transform: none;
-      padding: 10px 5px;
-      background: rgba(255, 255, 255, 0.6); /* 毛玻璃背板，防遮挡文字 */
-      backdrop-filter: blur(8px);
-      border-radius: 20px;
-      border: 1px solid var(--border-color, #eef0f2);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      padding: 6px 4px;
+      /* 无背景、无边框、无阴影 */
+      background: none;
+      backdrop-filter: none;
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
     }
 
-    .toc-panel {
-      display: none !important; /* 手机端空间有限，隐藏大纲 */
-    }
+    /* 目录面板手机端隐藏 */
+    .toc-panel { display: none !important; }
 
     .axis-panel {
-      /* 手机上永远保持显示，不发生位移 */
-      transform: translateX(0) !important; 
-      gap: 10px;
+      transform: translateX(0) !important;
+      gap: 8px;
     }
 
+    /* 进度轨道：更细更短，低存在感 */
     .scroll-axis-track {
-      height: 60px; /* 进度条大幅缩短 */
-      background-color: rgba(128, 128, 128, 0.15);
-    }
-    
-    .scroll-axis-dot {
-      /* 手机端放大触控点， */
-      width: 10px;
-      height: 10px;
+      height: 40px;
+      width: 1px; /* 比桌面端更纤细 */
+      background-color: rgba(128, 128, 128, 0.2);
     }
 
-    .axis-to-top-btn {
-      padding: 4px; /* 缩小按钮*/
+    /* 滑点：保持可见但不突兀 */
+    .scroll-axis-dot {
+      width: 5px;
+      height: 5px;
     }
+
+    /* 返回顶部按钮：缩小 */
+    .axis-to-top-btn {
+      padding: 4px;
+      opacity: 0.5; /* 半透明，不抢眼 */
+    }
+    .axis-to-top-btn:hover { opacity: 1; }
   }
 </style>

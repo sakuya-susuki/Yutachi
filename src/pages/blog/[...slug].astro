@@ -1,5 +1,5 @@
 ---
-// src/pages/blog/[...slug].astro (或者你用于渲染文章详情的那个文件)
+// src/pages/blog/[...slug].astro
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ScrollProgress from '../../components/ScrollProgress.astro';
@@ -44,26 +44,27 @@ const notionHtml = "";
 ---
 
 <BaseLayout title={title} description={description}>
-  
-  <div class="scroll-container" style="max-width: 700px; width: 100%; margin: 0 auto; padding: 80px 20px 40px 20px; box-sizing: border-box;">
+  <div class="scroll-container article-container">
     <article>
-      <header style="margin-bottom: 30px; display: flex; flex-direction: column; gap: 10px;">
-        <span class="sub-title" style="font-size: 0.8em; color: var(--accent-color, #d33a50); letter-spacing: 2px;">
+      <header class="article-header">
+        <span class="sub-title article-category">
           | {category}
         </span>
-        <h1 class="serif-font" style="font-size: 2.2em; margin: 0; line-height: 1.4; font-weight: 400;">
+        <h1 class="serif-font article-title">
           {title}
         </h1>
         {source === 'local' && entry.data.pubDate && (
-          <time style="color: var(--text-muted, #858585); font-size: 0.9em;">
-            | {new Date(entry.data.pubDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
-          </time>
+          <div class="article-meta">
+            <time class="article-time">
+              | {new Date(entry.data.pubDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </time>
+          </div>
         )}
       </header>
 
-      <hr style="border: none; height: 1px; background-color: var(--border-color, #eef0f2); margin-bottom: 40px;" />
+      <hr class="article-divider" />
 
-      <div class="markdown-body serif-font" style="line-height: 1.8; font-size: 1.05em;">
+      <div class="markdown-body serif-font">
         {source === 'local' ? (
            <Content />
         ) : (
@@ -71,17 +72,14 @@ const notionHtml = "";
         )}
       </div>
 
-      <div class="comments-section" style="margin-top: 80px; padding-top: 40px; border-top: 1px dashed var(--border-color);">
-        <h3 class="serif-font" style="margin-bottom: 30px; font-size: 1.5rem; color: var(--text-color);">留言</h3>
+      <div class="comments-section article-comments-section">
+        <h3 class="serif-font comments-title">留言</h3>
         <div id="waline"></div>
       </div>
     </article>
   </div>
 
-  <!--  核心修复点 2：把拿到的 headings 传给组件 -->
-
   <ScrollProgress headings={headings} />
-
 </BaseLayout>
 
 <link rel="stylesheet" href="https://unpkg.com/@waline/client@v3/dist/waline.css" />

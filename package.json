@@ -1,5 +1,5 @@
 {
-  "name": "my-astro-theme",
+  "name": "yutachi",
   "type": "module",
   "version": "0.0.1",
   "engines": {
@@ -11,8 +11,8 @@
     "preview": "astro preview",
     "astro": "astro",
     "new": "node scripts/new.js",
-    "nepage": "node scripts/new-page.js",
-    "book": "node scripts/convert-txt.js"
+    "new-page": "node scripts/new-page.js",
+    "nepage": "node scripts/new-page.js"
   },
   "dependencies": {
     "@astrojs/markdown-remark": "^7.2.1",

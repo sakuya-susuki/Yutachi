@@ -1,0 +1,281 @@
+/* ── 文章详情页专用样式 ───────────────────────────────────────
+   仅适用于 blog/[...slug] 文章页面与正文排版。
+   统一管理 Markdown 正文渲染、文章头部、分割线及评论区。
+   ─────────────────────────────────────────────────────────── */
+
+/* ── 文章外层容器 ── */
+.article-container {
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 80px 24px 60px 24px;
+  box-sizing: border-box;
+}
+
+/* ── 文章头部 ── */
+.article-header {
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.article-category {
+  font-size: 0.8rem;
+  color: var(--accent-color);
+  letter-spacing: 2px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.article-title {
+  font-size: 2.25rem;
+  margin: 0;
+  line-height: 1.38;
+  font-weight: 400;
+  color: var(--text-color);
+  letter-spacing: -0.5px;
+}
+
+.article-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.article-time {
+  font-family: var(--font-sans);
+}
+
+.article-divider {
+  border: none;
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 0 0 40px 0;
+}
+
+/* ── Markdown 正文排版规范 ── */
+.markdown-body {
+  color: var(--text-color);
+  line-height: 1.85;
+  font-size: 1.05rem;
+  word-break: break-word;
+}
+
+.markdown-body p {
+  margin: 1.25em 0;
+  text-align: justify;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  color: var(--text-color);
+  font-family: var(--font-serif);
+  line-height: 1.4;
+  font-weight: 500;
+  scroll-margin-top: 90px; /* 锚点跳转时为顶部导航留出视距 */
+}
+
+.markdown-body h1 {
+  font-size: 1.8rem;
+  margin-top: 2em;
+  margin-bottom: 0.8em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.markdown-body h2 {
+  font-size: 1.45rem;
+  margin-top: 1.8em;
+  margin-bottom: 0.7em;
+  padding-bottom: 0.2em;
+  border-bottom: 1px dashed var(--border-color);
+}
+
+.markdown-body h3 {
+  font-size: 1.2rem;
+  margin-top: 1.5em;
+  margin-bottom: 0.6em;
+}
+
+.markdown-body h4 {
+  font-size: 1.05rem;
+  margin-top: 1.3em;
+  margin-bottom: 0.5em;
+}
+
+/* 引用块样式 */
+.markdown-body blockquote {
+  margin: 1.6em 0;
+  padding: 12px 20px;
+  color: var(--text-muted);
+  background: rgba(128, 128, 128, 0.05);
+  border-left: 3px solid var(--accent-color);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.markdown-body blockquote p {
+  margin: 0.5em 0;
+}
+
+/* 列表样式 */
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.6em;
+  margin: 1.2em 0;
+}
+
+.markdown-body li {
+  margin: 0.4em 0;
+  line-height: 1.75;
+}
+
+/* 行内代码与代码块 */
+.markdown-body code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  padding: 0.18em 0.45em;
+  border-radius: var(--radius-xs);
+  background: rgba(128, 128, 128, 0.08);
+  color: var(--accent-color);
+  border: 1px solid rgba(128, 128, 128, 0.12);
+}
+
+.markdown-body pre {
+  margin: 1.6em 0;
+  padding: 18px 20px;
+  border-radius: var(--radius-md);
+  background: rgba(18, 18, 18, 0.95);
+  color: #e2e8f0;
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  line-height: 1.6;
+}
+
+.markdown-body pre code {
+  background: transparent;
+  padding: 0;
+  border: none;
+  color: inherit;
+  font-size: 0.9rem;
+}
+
+/* 图片处理 */
+.markdown-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  margin: 1.5em auto;
+  display: block;
+  box-shadow: var(--shadow-sm);
+}
+
+/* 表格处理 */
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.6em 0;
+  overflow-x: auto;
+  display: block;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid var(--border-color);
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.markdown-body th {
+  background: rgba(128, 128, 128, 0.06);
+  font-weight: 600;
+}
+
+/* 正文分割线 */
+.markdown-body hr {
+  border: none;
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 2.5em 0;
+}
+
+/* 链接样式 */
+.markdown-body a {
+  color: var(--accent-color);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: opacity var(--transition-fast);
+}
+
+.markdown-body a:hover {
+  opacity: 0.8;
+}
+
+/* ── 评论区 ── */
+.article-comments-section {
+  margin-top: 80px;
+  padding-top: 40px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.comments-title {
+  margin-bottom: 28px;
+  font-size: 1.45rem;
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+/* ── 移动端适配 ── */
+@media (max-width: 768px) {
+  .article-container {
+    padding: 40px 18px 60px 18px;
+  }
+
+  .article-title {
+    font-size: 1.75rem;
+    line-height: 1.32;
+  }
+
+  .markdown-body {
+    font-size: 0.98rem;
+    line-height: 1.78;
+  }
+
+  .markdown-body h1 {
+    font-size: 1.45rem;
+    margin-top: 1.6em;
+  }
+
+  .markdown-body h2 {
+    font-size: 1.25rem;
+    margin-top: 1.4em;
+  }
+
+  .markdown-body h3 {
+    font-size: 1.1rem;
+  }
+
+  .markdown-body pre {
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+  }
+
+  .article-comments-section {
+    margin-top: 50px;
+    padding-top: 30px;
+  }
+}
+
+@media (max-width: 390px) {
+  .article-container {
+    padding: 28px 14px 50px 14px;
+  }
+
+  .article-title {
+    font-size: 1.55rem;
+  }
+}

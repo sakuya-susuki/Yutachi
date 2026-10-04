@@ -1,5 +1,5 @@
 ---
-// src/pages/archive.astro (或 timeline.astro)
+// src/pages/timeline.astro
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
@@ -40,8 +40,9 @@ const years = Object.keys(groupedByYear).sort((a, b) => Number(b) - Number(a));
         
         <div class="filter-menu">
           <button class="filter-btn active" data-filter="all">全部</button>
-          <button class="filter-btn" data-filter="记">记</button>
+          <button class="filter-btn" data-filter="文">文</button>
           <button class="filter-btn" data-filter="思">思</button>
+          <button class="filter-btn" data-filter="记">记</button>
         </div>
       </div>
 
@@ -63,12 +64,13 @@ const years = Object.keys(groupedByYear).sort((a, b) => Number(b) - Number(a));
               const postDate = post.data.pubDate ? new Date(post.data.pubDate) : new Date();
               const monthDay = `${String(postDate.getMonth() + 1).padStart(2, '0')}-${String(postDate.getDate()).padStart(2, '0')}`;
               
-              //  智能提取正文内容（清理 Markdown 符号并截取前 120 字）
+              // 智能提取正文内容（清理 Markdown 符号并截取前 120 字）
               const rawBody = post.body || '';
               const cleanBody = rawBody.replace(/[#*`>_-]/g, '').trim().slice(0, 120);
+              const postCategory = post.data.category || (post.id.includes('/') ? post.id.split('/')[0] : '文章');
 
               return (
-                <a href={`/blog/${post.id}`} class="ledger-row" data-category={post.data.category || '文章'}>
+                <a href={`/blog/${post.id}`} class="ledger-row" data-category={postCategory}>
                   
                   <div class="ledger-left">
                     <div class="ledger-title-group">
@@ -76,8 +78,8 @@ const years = Object.keys(groupedByYear).sort((a, b) => Number(b) - Number(a));
                       <h3 class="ledger-title serif-font">{post.data.title}</h3>
                     </div>
                     
-                    {/*    核心：如果分类是“记”，则在标题下方直接渲染内容 */}
-                    {post.data.category === '记' && (
+                    {/* 如果分类包含“记”，则在标题下方直接渲染内容 */}
+                    {postCategory.includes('记') && (
                       <p class="ledger-excerpt">
                         {post.data.description || (cleanBody ? cleanBody + '...' : '一条短暂的碎念。')}
                       </p>
@@ -86,7 +88,7 @@ const years = Object.keys(groupedByYear).sort((a, b) => Number(b) - Number(a));
 
                   <div class="ledger-right">
                     {post.data.pinned && <span class="pinned-mark">置顶</span>}
-                    <span class="ledger-category">{post.data.category || '文章'}</span>
+                    <span class="ledger-category">{postCategory}</span>
                   </div>
                 </a>
               );
@@ -222,11 +224,11 @@ const years = Object.keys(groupedByYear).sort((a, b) => Number(b) - Number(a));
     border: 1px solid var(--border-color);
     color: var(--text-muted);
     padding: 4px 14px;
-    border-radius: 20px;
+    border-radius: var(--radius-pill);
     font-size: 0.8rem;
     cursor: pointer;
     font-family: inherit;
-    transition: all 0.3s ease;
+    transition: all var(--transition-normal);
   }
 
   .filter-btn:hover {
@@ -311,8 +313,8 @@ const years = Object.keys(groupedByYear).sort((a, b) => Number(b) - Number(a));
     border-bottom: 1px solid var(--border-color);
     text-decoration: none;
     color: var(--text-color);
-    transition: background-color 0.3s ease, border-color 0.3s ease;
-    border-radius: 6px 6px 0 0;
+    transition: background-color var(--transition-normal), border-color var(--transition-normal);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
   }
 
   /*  左侧容器改为纵向排列，包含标题行和简介行 */
@@ -426,7 +428,7 @@ const years = Object.keys(groupedByYear).sort((a, b) => Number(b) - Number(a));
       opacity: 0.3 !important;
     }
 
-   移动端适配
+    /* ── 手机端：日期 + 标题各行堆叠 ── */
     .ledger-row {
       flex-direction: column !important;
       align-items: flex-start !important;
@@ -458,6 +460,19 @@ const years = Object.keys(groupedByYear).sort((a, b) => Number(b) - Number(a));
       transform: translateX(0) !important;
       pointer-events: auto !important;
       flex-wrap: wrap !important; /* 允许按钮换行 */
+    }
+  }
+
+  /* ── iPhone 13 精准断点（≤390px）── */
+  @media (max-width: 390px) {
+    .archive-catalog-container {
+      padding: 28px 16px 80px 16px !important;
+    }
+    .year-monument {
+      font-size: 2.2rem !important;
+    }
+    .ledger-row {
+      padding: 16px 10px !important;
     }
   }
 </style>

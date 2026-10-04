@@ -1,87 +1,152 @@
 ---
-// src/pages/page.astro
-import { getCollection } from 'astro:content';
-import BaseLayout from '../layouts/BaseLayout.astro';
+// src/pages/posts.astro
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
 
-// 1. 【放行随记】把 id.startsWith('随记/') 也加进判断条件中
-const pagePosts = await getCollection('blog', ({ id }) => {
-  return id.startsWith('文章/') || id.startsWith('思考/') || id.startsWith('随记/');
+// ── 唯一的分类配置入口 ──────────────────────────────────────────
+// 新增分类时只需在这里追加一条记录，其他所有逻辑均自动驱动。
+// 字段说明：
+//   folder - src/content/blog/ 下的子目录前缀（必须含斜杠）
+//   label  - UI 按钮与 data-category 属性中的简短标签
+//   title  - 选中该分类时页面大标题
+//   desc   - 选中该分类时的描述文字
+const CATEGORIES = [
+  { folder: "文章/", label: "文", title: "文章",   desc: "正式撰写的文章与长篇论述。"       },
+  { folder: "思考/", label: "思", title: "文章.思", desc: "碎片化的想法、灵感与思考瞬间。"   },
+  { folder: "随记/", label: "记", title: "文章.记", desc: "日常生活、随笔与毫无主题的记录。" },
+];
+
+const ALL_CAT = { label: "all", title: "文章", desc: "这里汇集了所有的记录与思考。" };
+
+// 热门标签侧边栏最多展示条数
+const MAX_SIDEBAR_TAGS = 10;
+
+// ── 数据获取：由配置驱动 ────────────────────────────────────────
+const pagePosts = await getCollection("blog", ({ id }) =>
+  CATEGORIES.some((c) => id.startsWith(c.folder))
+);
+
+// 分类映射：由配置驱动
+pagePosts.forEach((post) => {
+  const match = CATEGORIES.find((c) => post.id.startsWith(c.folder));
+  if (match) post.data.category = match.label;
 });
 
-// 2. 【增加分类映射】告诉前端，随记文件夹对应分类名为“记”
-pagePosts.forEach(post => {
-  if (post.id.startsWith('文章/')) {
-    post.data.category = '文';
-  } else if (post.id.startsWith('思考/')) {
-    post.data.category = '思';
-  } else if (post.id.startsWith('随记/')) {
-    post.data.category = '记'; 
-  }
-});
-//  发布日期从新到旧排序
+// 发布日期从新到旧排序
 const sortedPosts = pagePosts.sort((a, b) => {
   const dateA = a.data.pubDate ? new Date(a.data.pubDate).getTime() : 0;
   const dateB = b.data.pubDate ? new Date(b.data.pubDate).getTime() : 0;
   return dateB - dateA;
 });
 
-// 寻找置顶文章
-const pinnedPost = sortedPosts.find(post => post.data.pinned === true) || sortedPosts[0];
+// 置顶文章（有 pinned:true 的优先，否则取最新一篇）
+const pinnedPost =
+  sortedPosts.find((post) => post.data.pinned === true) || sortedPosts[0];
 
-// 统计标签数 (过滤掉空标签)
-const tagMap = {};
-pagePosts.forEach(post => {
-  const tags = post.data.tags || [];
-  tags.forEach(tag => {
+// 统计标签频次
+const tagMap: Record<string, number> = {};
+pagePosts.forEach((post) => {
+  (post.data.tags || []).forEach((tag) => {
     tagMap[tag] = (tagMap[tag] || 0) + 1;
   });
 });
-
 const sortedTags = Object.entries(tagMap)
   .sort((a, b) => b[1] - a[1])
-  .slice(0, 10);
+  .slice(0, MAX_SIDEBAR_TAGS);
+
+// 将分类配置序列化，注入为客户端 JSON 数据岛（避免在 JS 中硬编码）
+const catConfigJSON = JSON.stringify([
+  ALL_CAT,
+  ...CATEGORIES.map((c) => ({ label: c.label, title: c.title, desc: c.desc })),
+]);
 ---
 
 <BaseLayout title="文章列表 - Yutachi">
   <div class="archive-layout">
-    
     <!-- 左侧：文章列表大栏 -->
     <main class="archive-main">
-      
+      <!-- 分类配置数据岛（供 blogEngine 读取，无需在客户端 JS 中硬编码） -->
+      <script id="cat-config" type="application/json" set:text={catConfigJSON}></script>
+
       <header class="archive-title-section">
         <span class="sub-title">BLOG</span>
-        <h1 class="serif-font title-transition" id="page-main-title">文章</h1>
-        
+        <h1 class="serif-font title-transition" id="page-main-title">{ALL_CAT.title}</h1>
+
         <div class="category-filters">
+          <!-- 按钮由服务端 CATEGORIES 配置动态生成，新增分类只需改 CATEGORIES -->
           <span class="cat-btn active" data-cat="all">全部</span>
-          <span class="cat-btn" data-cat="文">文</span>
-          <span class="cat-btn" data-cat="思">思</span>
-          <span class="cat-btn" data-cat="记">记</span> 
-          <p class="category-desc title-transition" id="category-desc-text">这里汇集了所有的记录与思考。</p>      
+          {CATEGORIES.map((c) => (
+            <span class="cat-btn" data-cat={c.label}>{c.label}</span>
+          ))}
+          <p class="category-desc title-transition" id="category-desc-text">
+            {ALL_CAT.desc}
+          </p>
         </div>
       </header>
 
       <!-- 置顶文章 (加上 data-category 参与筛选) -->
-      {pinnedPost && (
-        <div class="post-item pinned-item" 
-             data-category={pinnedPost.data.category} 
-             data-tags={JSON.stringify(pinnedPost.data.tags || [])}
-             data-date={pinnedPost.data.pubDate ? new Date(pinnedPost.data.pubDate).getTime() : 0}>
-          <h2 class="serif-font">
-            <a href={`/blog/${pinnedPost.id}`}>{pinnedPost.data.title}</a>
-          </h2>
-          <p class="post-desc">{pinnedPost.data.description || '点击阅读这篇置顶文章正文...'}</p>
-          <div class="archive-post-meta">
-            <span class="pinned-tag">置顶</span>
-            <span>{pinnedPost.data.pubDate ? new Date(pinnedPost.data.pubDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}</span>
-            {pinnedPost.data.category && <span class="category-text"> · {pinnedPost.data.category}</span>}
+      {
+        pinnedPost && (
+          <div
+            class="post-item pinned-item"
+            data-category={pinnedPost.data.category}
+            data-tags={JSON.stringify(pinnedPost.data.tags || [])}
+            data-date={
+              pinnedPost.data.pubDate
+                ? new Date(pinnedPost.data.pubDate).getTime()
+                : 0
+            }
+          >
+            <h2 class="serif-font">
+              <a href={`/blog/${pinnedPost.id}`}>{pinnedPost.data.title}</a>
+            </h2>
+            <p class="post-desc">
+              {pinnedPost.data.description || "点击阅读这篇置顶文章正文..."}
+            </p>
+            <div class="archive-post-meta">
+              <span class="pinned-tag">置顶</span>
+              <span>
+                {pinnedPost.data.pubDate
+                  ? new Date(pinnedPost.data.pubDate).toLocaleDateString(
+                      "zh-CN",
+                      { year: "numeric", month: "long", day: "numeric" },
+                    )
+                  : ""}
+              </span>
+              {pinnedPost.data.category && (
+                <span class="category-text"> · {pinnedPost.data.category}</span>
+              )}
+            </div>
           </div>
+        )
+      }
+
+      <!-- 手机端专用工具条：搜索 + 标签横向滚动（桌面端隐藏） -->
+      <div class="mobile-toolbar">
+        <div class="search-box-wrapper">
+          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" placeholder="搜索文章..." id="mobile-search-input" class="search-input" autocomplete="off" />
         </div>
-      )}
+        <div class="mobile-tags-scroll">
+          {
+            sortedTags.map(([tag, count]) => (
+              <span class="tag-badge" data-tag={tag}>
+                {tag} <span class="tag-count">({count})</span>
+              </span>
+            ))
+          }
+          <a href="#" class="all-tags-link" id="clear-tag-filter">清除过滤</a>
+        </div>
+      </div>
 
       <!-- 分割控制条 (文章统计、排序) -->
       <div class="list-control-bar">
-        <div class="total-count" id="post-count-display">共 {pagePosts.length} 篇</div>
+        <div class="total-count" id="post-count-display">
+          共 {pagePosts.length} 篇
+        </div>
         <div class="sort-options">
           <span class="sort-btn active" data-sort="newest">最新</span>
           <span class="sort-btn" data-sort="oldest">最早</span>
@@ -91,240 +156,111 @@ const sortedTags = Object.entries(tagMap)
 
       <!-- 普通文章列表 -->
       <div class="regular-posts-list" id="posts-list-container">
-        {sortedPosts.map((post) => (
-          <div class="post-item" 
-               data-category={post.data.category}
-               data-tags={JSON.stringify(post.data.tags || [])}
-               data-date={post.data.pubDate ? new Date(post.data.pubDate).getTime() : 0}
-               data-updated={post.data.updatedDate ? new Date(post.data.updatedDate).getTime() : (post.data.pubDate ? new Date(post.data.pubDate).getTime() : 0)}>
-            <h3 class="serif-font">
-              <a href={`/blog/${post.id}`}>{post.data.title}</a>
-            </h3>
-            <p class="post-desc">{post.data.description || '这是一篇关于文字记录的报告，请查收...'}</p>
-            <div class="archive-post-meta">
-              {post.data.pinned && <span class="pinned-tag-mini">置顶</span>}
-              <span>{post.data.pubDate ? new Date(post.data.pubDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}</span>
-              {post.data.category && <span class="category-text"> · {post.data.category}</span>}
-              {post.data.tags && post.data.tags.slice(0, 3).map((tag) => (
-                <span class="tag-pill" data-tag={tag}>{tag}</span>
-              ))}
+        {
+          sortedPosts.map((post) => (
+            <div
+              class="post-item"
+              data-category={post.data.category}
+              data-tags={JSON.stringify(post.data.tags || [])}
+              data-date={
+                post.data.pubDate ? new Date(post.data.pubDate).getTime() : 0
+              }
+              data-updated={
+                post.data.updatedDate
+                  ? new Date(post.data.updatedDate).getTime()
+                  : post.data.pubDate
+                    ? new Date(post.data.pubDate).getTime()
+                    : 0
+              }
+            >
+              <h3 class="serif-font">
+                <a href={`/blog/${post.id}`}>{post.data.title}</a>
+              </h3>
+              <p class="post-desc">
+                {post.data.description ||
+                  "这是一篇关于文字记录的报告，请查收..."}
+              </p>
+              <div class="archive-post-meta">
+                {post.data.pinned && <span class="pinned-tag-mini">置顶</span>}
+                <span>
+                  {post.data.pubDate
+                    ? new Date(post.data.pubDate).toLocaleDateString("zh-CN", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
+                    : ""}
+                </span>
+                {post.data.category && (
+                  <span class="category-text"> · {post.data.category}</span>
+                )}
+                {post.data.tags &&
+                  post.data.tags.slice(0, 3).map((tag) => (
+                    <span class="tag-pill" data-tag={tag}>
+                      {tag}
+                    </span>
+                  ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        }
       </div>
-
     </main>
 
     <!-- 右侧：侧边栏 -->
     <aside class="archive-sidebar">
       <div class="sidebar-sticky-card">
         <div class="search-box-wrapper">
-          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg
+            class="search-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
-          <input type="text" placeholder="搜索文章标题..." id="search-input" autocomplete="off" />
+          <input
+            type="text"
+            placeholder="搜索文章标题..."
+            id="desktop-search-input"
+            class="search-input"
+            autocomplete="off"
+          />
         </div>
 
         <div class="sidebar-section">
           <div class="section-title">热门标签</div>
           <div class="tags-grid">
-            {sortedTags.map(([tag, count]) => (
-              <span class="tag-badge" data-tag={tag}>
-                {tag} <span class="tag-count">({count})</span>
-              </span>
-            ))}
+            {
+              sortedTags.map(([tag, count]) => (
+                <span class="tag-badge" data-tag={tag}>
+                  {tag} <span class="tag-count">({count})</span>
+                </span>
+              ))
+            }
           </div>
-          <a href="#" class="all-tags-link" id="clear-tag-filter">清除标签过滤</a>
+          <a href="#" class="all-tags-link" id="clear-tag-filter"
+            >清除标签过滤</a
+          >
         </div>
       </div>
     </aside>
-
   </div>
 </BaseLayout>
 
 <script>
-  const initBlogEngine = () => {
-    // DOM 元素获取 
-    const descEl = document.getElementById('category-desc-text');
-    const titleEl = document.getElementById('page-main-title');
-    const searchInput = document.getElementById('search-input') as HTMLInputElement;
-    const countDisplay = document.getElementById('post-count-display');
-    const listContainer = document.getElementById('posts-list-container');
-    const postItems = document.querySelectorAll('.post-item') as NodeListOf<HTMLElement>;
-    const catBtns = document.querySelectorAll('.cat-btn');
-    const tagBadges = document.querySelectorAll('.tag-badge');
-    const tagPills = document.querySelectorAll('.tag-pill');
-    const clearFilterBtn = document.getElementById('clear-tag-filter');
-    const sortBtns = document.querySelectorAll('.sort-btn');
-    const catDescriptions = {
-      'all': '这里汇集了所有的记录与思考。',
-      '文': '正式撰写的文章与长篇论述。',
-      '思': '碎片化的想法、灵感与思考瞬间。',
-      '记': '日常生活、随笔与毫无主题的记录。'
-    };
-
-    // 状态机 
-    let state = {
-      search: '',
-      tag: '',
-      cat: 'all' // 'all', '文', '思'
-    };
-
-    //  性能优化：预解析数据 
-    // 避免在每次过滤时进行高耗时的 DOM 查询和 JSON.parse
-    const itemDataCache = Array.from(postItems).map(item => {
-      let tags = [];
-      try { tags = JSON.parse(item.getAttribute('data-tags') || '[]').map(t => t.toLowerCase()); } catch(e){}
-      
-      const rawCat = item.getAttribute('data-category') || '';
-      // 归一化分类，将 "文章" 归类为 "文"
-      const normalizedCat = (rawCat === '文章' || rawCat === '文') ? '文' : rawCat;
-
-      return {
-        el: item,
-        title: item.querySelector('h3, h2')?.textContent?.toLowerCase() || '',
-        desc: item.querySelector('.post-desc')?.textContent?.toLowerCase() || '',
-        tags: tags,
-        cat: normalizedCat,
-        date: Number(item.getAttribute('data-date') || 0),
-        updated: Number(item.getAttribute('data-updated') || item.getAttribute('data-date') || 0)
-      };
-    });
-
-    //  核心过滤渲染 
-    const renderView = () => {
-      let visibleCount = 0;
-
-      itemDataCache.forEach(data => {
-        const matchesSearch = data.title.includes(state.search) || data.desc.includes(state.search);
-        const matchesTag = !state.tag || data.tags.includes(state.tag);
-        const matchesCat = state.cat === 'all' || data.cat === state.cat;
-
-        if (matchesSearch && matchesTag && matchesCat) {
-          data.el.classList.remove('filtered-out');
-          visibleCount++;
-        } else {
-          data.el.classList.add('filtered-out');
-        }
-      });
-
-      // 动态更新篇数统计
-      if(countDisplay) {
-        countDisplay.textContent = `共 ${visibleCount} 篇`;
-      }
-
-      if(titleEl && descEl) {
-        titleEl.classList.add('fade-out');
-        descEl.classList.add('fade-out');
-        setTimeout(() => {
-          titleEl.textContent = state.cat === 'all' ? '文章' : `文章.${state.cat}`;
-
-          descEl.textContent = catDescriptions[state.cat] || catDescriptions['all']; 
-          titleEl.classList.remove('fade-out');
-          descEl.classList.remove('fade-out');
-        }, 200); 
-      }
-    };
-
-    // 事件监听
-
-    //分类筛选
-    catBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        catBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.cat = btn.getAttribute('data-cat') || 'all';
-        renderView();
-      });
-    });
-
-    //搜索框 
-    let isComposing = false;
-    if(searchInput) {
-      searchInput.addEventListener('compositionstart', () => { isComposing = true; });
-      searchInput.addEventListener('compositionend', () => {
-        isComposing = false;
-        state.search = searchInput.value.toLowerCase().trim();
-        renderView();
-      });
-      searchInput.addEventListener('input', () => {
-        if (isComposing) return;
-        state.search = searchInput.value.toLowerCase().trim();
-        renderView();
-      });
-    }
-
-   
-    const updateTagUI = (targetTag: string) => {
-      state.tag = targetTag;
-      tagBadges.forEach(b => {
-        if (b.getAttribute('data-tag')?.toLowerCase() === targetTag) {
-          b.classList.add('active');
-        } else {
-          b.classList.remove('active');
-        }
-      });
-      renderView();
-    };
-
-    tagBadges.forEach(badge => {
-      badge.addEventListener('click', () => {
-        const tag = badge.getAttribute('data-tag')?.toLowerCase() || '';
-        updateTagUI(state.tag === tag ? '' : tag);
-      });
-    });
-
-    tagPills.forEach(pill => {
-      pill.addEventListener('click', (e) => {
-        e.stopPropagation(); 
-        e.preventDefault();
-        const tag = pill.getAttribute('data-tag')?.toLowerCase() || '';
-        updateTagUI(state.tag === tag ? '' : tag);
-      });
-    });
-
-    if (clearFilterBtn) {
-      clearFilterBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        updateTagUI('');
-      });
-    }
-
-    //排序逻辑
-    sortBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (!listContainer) return;
-        
-        sortBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const sortType = btn.getAttribute('data-sort');
-
-        // 执行排序
-        listContainer.classList.add('sorting-transition');
-        setTimeout(() => {
-          const regularItems = itemDataCache.filter(d => !d.el.classList.contains('pinned-item'));
-          
-          regularItems.sort((a, b) => {
-            if (sortType === 'oldest') return a.date - b.date;
-            if (sortType === 'updated') return b.updated - a.updated;
-            return b.date - a.date; // newest
-          });
-
-          regularItems.forEach(item => {
-            listContainer.appendChild(item.el); 
-          });
-          
-          listContainer.classList.remove('sorting-transition');
-        }, 150);
-        
-      });
-    });
-  };
+  import { initBlogEngine } from "../lib/blogEngine";
 
   // 过渡支持
   initBlogEngine();
-  document.addEventListener('astro:after-swap', initBlogEngine);
+  document.addEventListener("astro:after-swap", initBlogEngine);
 </script>
 
 <style>
@@ -337,6 +273,10 @@ const sortedTags = Object.entries(tagMap)
     padding: 80px 24px;
     box-sizing: border-box;
   }
+
+  /* 手机专用工具条：桌面端默认隐藏 */
+  .mobile-toolbar { display: none; }
+  .mobile-tags-scroll { display: none; }
 
   .archive-main {
     flex: 1;
@@ -359,10 +299,12 @@ const sortedTags = Object.entries(tagMap)
     color: var(--text-muted);
     font-weight: 600;
   }
-  
+
   /* 动态标题过渡动画 */
   .title-transition {
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
     opacity: 1;
     transform: translateY(0);
     font-size: 2.2rem;
@@ -385,9 +327,9 @@ const sortedTags = Object.entries(tagMap)
     color: var(--text-muted);
     cursor: pointer;
     padding: 4px 12px;
-    border-radius: 20px;
+    border-radius: var(--radius-pill);
     background: rgba(128, 128, 128, 0.05);
-    transition: all 0.3s ease;
+    transition: all var(--transition-normal);
   }
   .cat-btn:hover {
     color: var(--text-color);
@@ -397,7 +339,7 @@ const sortedTags = Object.entries(tagMap)
     color: #fff;
     background: var(--accent-color);
     font-weight: 500;
-    box-shadow: 0 2px 6px rgba(227, 13, 49, 0.2);
+    box-shadow: var(--shadow-sm);
   }
 
   /* 使用 max-height 与 scale 折叠 */
@@ -411,7 +353,7 @@ const sortedTags = Object.entries(tagMap)
     margin-bottom: 0;
     border-bottom: 1px dashed var(--border-color);
     text-align: left;
-    transition: 
+    transition:
       opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1),
       transform 0.4s cubic-bezier(0.25, 1, 0.5, 1),
       max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1),
@@ -437,12 +379,14 @@ const sortedTags = Object.entries(tagMap)
     margin: 0 0 8px 0;
     font-weight: 500;
   }
-  .pinned-item h2 a, .post-item h3 a {
+  .pinned-item h2 a,
+  .post-item h3 a {
     color: var(--text-color) !important;
     text-decoration: none;
-    transition: color 0.2s;
+    transition: color var(--transition-fast);
   }
-  .pinned-item h2 a:hover, .post-item h3 a:hover {
+  .pinned-item h2 a:hover,
+  .post-item h3 a:hover {
     color: var(--accent-color) !important;
   }
 
@@ -451,7 +395,7 @@ const sortedTags = Object.entries(tagMap)
     color: var(--accent-color) !important;
     font-size: 0.72rem;
     padding: 2px 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-weight: 500;
     letter-spacing: 1px;
   }
@@ -461,7 +405,7 @@ const sortedTags = Object.entries(tagMap)
     color: var(--text-muted) !important;
     font-size: 0.72rem;
     padding: 1px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     font-weight: 500;
   }
 
@@ -503,7 +447,8 @@ const sortedTags = Object.entries(tagMap)
     cursor: pointer;
     transition: color 0.2s;
   }
-  .sort-btn:hover, .sort-btn.active {
+  .sort-btn:hover,
+  .sort-btn.active {
     color: var(--accent-color);
     font-weight: 500;
   }
@@ -522,10 +467,10 @@ const sortedTags = Object.entries(tagMap)
     background: rgba(128, 128, 128, 0.08);
     color: var(--text-muted);
     padding: 1px 8px;
-    border-radius: 10px;
+    border-radius: var(--radius-pill);
     font-size: 0.72rem;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-fast);
   }
   .tag-pill:hover {
     background: rgba(227, 13, 49, 0.1);
@@ -553,9 +498,9 @@ const sortedTags = Object.entries(tagMap)
     background: rgba(128, 128, 128, 0.05);
     border: 1px solid var(--border-color);
     padding: 8px 14px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     color: var(--text-muted);
-    transition: border-color 0.3s ease;
+    transition: border-color var(--transition-normal);
   }
   .search-box-wrapper:focus-within {
     border-color: var(--accent-color);
@@ -630,20 +575,53 @@ const sortedTags = Object.entries(tagMap)
     font-size: 0.85rem;
     color: var(--text-muted);
     /* 与上方过滤按钮的间距 */
-    margin-top: 15px; 
+    margin-top: 15px;
     line-height: 1.6;
     letter-spacing: 0.5px;
     /* 如果不需要斜体可以删掉这行 */
-    font-style: italic; 
+    font-style: italic;
   }
 
   @media (max-width: 768px) {
+    /* 整体布局：去採用单列，收紧内边距 */
     .archive-layout {
       flex-direction: column;
-      padding: 40px 20px;
+      padding: 32px 16px 80px 16px;
+      gap: 0;
     }
-    .archive-sidebar {
-      display: none;
+    /* 桌面侧边栏隐藏（内容已移入 mobile-toolbar） */
+    .archive-sidebar { display: none; }
+
+    /* 手机工具条：显示 */
+    .mobile-toolbar {
+      display: flex !important;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
     }
+
+    /* 标签横向滚动条 */
+    .mobile-tags-scroll {
+      display: flex !important;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 8px;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; /* Firefox 隐藏滚动条 */
+    }
+    .mobile-tags-scroll::-webkit-scrollbar { display: none; }
+
+    /* 标签不换行 */
+    .mobile-tags-scroll .tag-badge,
+    .mobile-tags-scroll .all-tags-link {
+      flex-shrink: 0;
+    }
+
+    /* 文章列表内边距收紧 */
+    .archive-main { padding: 0; }
+
+    /* 标题区字号收紧 */
+    .archive-title-section h1 { font-size: 1.8rem !important; }
   }
 </style>

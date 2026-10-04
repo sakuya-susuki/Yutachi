@@ -3,18 +3,21 @@
 const { title = "Yutachi", description = "台官忽奏文昌现" } = Astro.props;
 // 获取当前网页的路径
 const currentPath = Astro.url.pathname;
-// 判断用户是否正处于首页
-const isHome = currentPath === '/' || currentPath === '/index.html';
+// 判断用户是否正处于首页及各个子栏目
+const isHome = currentPath === "/" || currentPath === "/index.html";
+const isPosts = currentPath.startsWith("/posts");
+const isTimeline = currentPath.startsWith("/timeline");
 
-// 引入自定义 CSS
-import ScrollProgress from '../components/ScrollProgress.astro';
-import '../styles/font.css';   
-import '../styles/more.css';  
-// 引入自定义 astro组件
-import ThemeToggle from '../components/ThemeToggle.astro';
+// 引入样式：tokens（变量）→ layout（全局布局）→ font（字体）→ article（文章专用）
+import "../styles/tokens.css";
+import "../styles/layout.css";
+import "../styles/font.css";
+import "../styles/article.css";
+// 引入组件
+import ThemeToggle from "../components/ThemeToggle.astro";
 ---
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
@@ -23,46 +26,65 @@ import ThemeToggle from '../components/ThemeToggle.astro';
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <!-- 引入思源宋体 -->
-   <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- 思源宋体：preload + onload 非阻塞加载，消除渲染阻塞，提升 FCP -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;700&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;700&display=swap"
+      />
+    </noscript>
   </head>
   <body>
     <!-- 1. 粒子背景 -->
     <canvas id="particle-canvas"></canvas>
 
     <!-- 2. 顶部全局导航栏 -->
- <header class="header">
+    <header class="header">
       <nav class="nav">
-        
         <!-- 左侧：极简品牌名 -->
         <div class="nav-left">
-          <a href="/" class="logo serif-font">Sayaka</a>
+          <a href="/" class="logo serif-font">K_SAY.</a>
         </div>
-        
+
         <!-- 中间：可折叠文字菜单 -->
         <div id="nav-menu-wrapper" class="nav-menu-wrapper">
           <div class="nav-center">
-            <a href={isHome ? '#' : '/'} class={isHome ? 'active' : ''}>首</a>
-            <a href="/page">文</a>
-            <a href="/timeline">忆往昔</a>
-            <a href="#">记</a>
-            <a href="#">思</a>
+            <a href={isHome ? "#" : "/"} class={isHome ? "active" : ""}>首</a>
+            <a href="/posts" class={isPosts ? "active" : ""}>文</a>
+            <a href="/timeline" class={isTimeline ? "active" : ""}>忆往昔</a>
+            <a href="/posts?cat=记">记</a>
+            <a href="/posts?cat=思">思</a>
           </div>
         </div>
 
         <div class="nav-actions">
           <ThemeToggle />
           <button id="mobile-menu-btn" class="hamburger-btn" aria-label="菜单">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <line x1="3" y1="12" x2="21" y2="12"></line>
               <line x1="3" y1="6" x2="21" y2="6"></line>
               <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
           </button>
         </div>
-
       </nav>
     </header>
 
@@ -77,11 +99,11 @@ import ThemeToggle from '../components/ThemeToggle.astro';
         <!-- 4.1 互动呼吁区域 -->
         <div class="footer-action-zone">
           <div class="action-title serif-font">
-            <span id="dynamic-greeting">仲夏蝉鸣</span> 
-            <span class="action-title serif-font">欢迎来信</span>
+            <span id="dynamic-greeting">仲夏蝉鸣</span>
+            <span class="action-title serif-font"></span>
             <span class="pink-dot">●</span>
           </div>
-          
+
           <div class="action-grid">
             <div class="action-item">
               <span class="action-label">不要悲伤</span>
@@ -94,7 +116,9 @@ import ThemeToggle from '../components/ThemeToggle.astro';
           </div>
 
           <div class="action-sublinks">
-            <a href="tome">来信</a> · <a href="/friends">朋友们</a> · <a href="bookcase">书柜</a>
+            <a href="/tome">来信</a> · <a href="/friends">朋友们</a> · <a
+              href="/bookcase">书柜</a
+            >
           </div>
         </div>
 
@@ -102,32 +126,30 @@ import ThemeToggle from '../components/ThemeToggle.astro';
 
         <!-- 4.2 底部站点地图区域 (双列) -->
         <div class="footer-meta-grid">
-          <!-- 左侧：口号和版权 -->
           <div class="meta-left">
             <h3 class="brand-logo">Yutachi</h3>
             <p class="brand-motto italic-text">.</p>
             <p class="copyright">© 2024-2026 Powered by Sayaka & Astro</p>
-            <p class="live-counter"><span class="green-dot">●</span> 披阅数</p>
+            <!-- <p class="live-counter"><span class="green-dot">●</span></p> -->
           </div>
 
           <!-- 右侧：分类链接列表 -->
           <div class="meta-right-links">
             <div class="link-group">
               <h4>关于</h4>
-              <a href="Yutachi">关于本站此项目</a>
+              <a href="/Yutachi">关于本站此项目</a>
               <a href="/blog/文章/about-me">关于我</a>
             </div>
             <div class="link-group">
               <h4>更多</h4>
-              <a href="photos">照片廊</a>
-              <a href="friends">友链</a>
+              <a href="/photos">照片廊</a>
+              <a href="/friends">友链</a>
               <!-- <a href="login">登记</a> -->
-
             </div>
             <div class="link-group">
               <h4>联系</h4>
               <a href="#">留言</a>
-              <a href="mailto:Bellflowere@proton.me">邮件 ↗</a>
+              <a href="mailto:2095368893@qq.com">邮件 ↗</a>
               <a href="https://github.com/sakuya-susuki">GitHub ↗</a>
             </div>
           </div>
@@ -145,25 +167,27 @@ import ThemeToggle from '../components/ThemeToggle.astro';
       </div>
     </footer>
 
-    <!-- 粒子脚本 -->
+    <!-- 粒子背景脚本 -->
     <script>
-      const canvas = document.getElementById('particle-canvas') as HTMLCanvasElement;
+      const canvas = document.getElementById(
+        "particle-canvas",
+      ) as HTMLCanvasElement;
       if (canvas) {
-        const ctx = canvas.getContext('2d')!;
+        const ctx = canvas.getContext("2d")!;
         let width = (canvas.width = window.innerWidth);
         let height = (canvas.height = window.innerHeight);
 
-        const particles: Particle[] = [];
-        const count = 50; 
+        const PARTICLE_COUNT = 50; // 粒子总数，可按需调整
 
+        // ── 粒子类 ──────────────────────────────────
         class Particle {
-          x: number = 0;
-          y: number = 0;
-          size: number = 0;
-          speedX: number = 0;
-          speedY: number = 0;
-          alpha: number = 0;
-          color: string = '';
+          x = 0;
+          y = 0;
+          size = 0;
+          speedX = 0;
+          speedY = 0;
+          alpha = 0;
+          color = "";
 
           constructor() {
             this.reset(true);
@@ -176,20 +200,19 @@ import ThemeToggle from '../components/ThemeToggle.astro';
             this.speedX = (Math.random() - 0.5) * 0.1;
             this.speedY = Math.random() * 0.15 + 0.08;
             this.alpha = Math.random() * 0.35 + 0.08;
-            
-            const isPink = Math.random() > 0.8;
-            this.color = isPink 
-              ? `rgba(244, 63, 94, ${this.alpha})` 
-              : `rgba(226, 232, 240, ${this.alpha})`;
+            // 20% 概率为蔷薇粉，其余为雾灰色
+            this.color =
+              Math.random() > 0.8
+                ? `rgba(244, 63, 94, ${this.alpha})`
+                : `rgba(226, 232, 240, ${this.alpha})`;
           }
 
           update() {
             this.x += this.speedX;
             this.y += this.speedY;
-
-            if (this.y > height + 10 || this.x < -10 || this.x > width + 10) {
+            // 越界后从顶部重置，实现循环飘落
+            if (this.y > height + 10 || this.x < -10 || this.x > width + 10)
               this.reset();
-            }
           }
 
           draw() {
@@ -200,12 +223,13 @@ import ThemeToggle from '../components/ThemeToggle.astro';
           }
         }
 
-        function init() {
-          for (let i = 0; i < count; i++) {
-            particles.push(new Particle());
-          }
-        }
+        // ── 初始化 ──────────────────────────────────
+        const particles: Particle[] = Array.from(
+          { length: PARTICLE_COUNT },
+          () => new Particle(),
+        );
 
+        // ── 动画循环 ─────────────────────────────────
         function animate() {
           ctx.clearRect(0, 0, width, height);
           particles.forEach((p) => {
@@ -215,12 +239,16 @@ import ThemeToggle from '../components/ThemeToggle.astro';
           requestAnimationFrame(animate);
         }
 
-        window.addEventListener('resize', () => {
-          width = canvas.width = window.innerWidth;
-          height = canvas.height = window.innerHeight;
+        // ── resize 防抖：避免窗口拖拽时频繁重计算 ──
+        let resizeTimer: ReturnType<typeof setTimeout>;
+        window.addEventListener("resize", () => {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+          }, 150);
         });
 
-        init();
         animate();
       }
     </script>
@@ -228,7 +256,7 @@ import ThemeToggle from '../components/ThemeToggle.astro';
     <!-- 动态时辰计算脚本 -->
     <script is:inline>
       function updateTimeGreeting() {
-        const greetingElement = document.getElementById('dynamic-greeting');
+        const greetingElement = document.getElementById("dynamic-greeting");
         if (!greetingElement) return;
 
         const hour = new Date().getHours();
@@ -253,11 +281,11 @@ import ThemeToggle from '../components/ThemeToggle.astro';
       updateTimeGreeting();
     </script>
 
-<!-- 移动端 -->
- <script is:inline>
+    <!-- 移动端 -->
+    <script is:inline>
       function setupMobileMenu() {
-        const btn = document.getElementById('mobile-menu-btn');
-        const menu = document.getElementById('nav-menu-wrapper');
+        const btn = document.getElementById("mobile-menu-btn");
+        const menu = document.getElementById("nav-menu-wrapper");
 
         if (!btn || !menu) return;
 
@@ -265,599 +293,27 @@ import ThemeToggle from '../components/ThemeToggle.astro';
         const newBtn = btn.cloneNode(true);
         btn.parentNode.replaceChild(newBtn, btn);
 
-        // 2. 绑定点击展开/收起事件
-        newBtn.addEventListener('click', () => {
-          menu.classList.toggle('open');
-          console.log('汉堡菜单点击成功！状态：', menu.classList.contains('open'));
+        // 2. 绑定点击展开/收起
+        newBtn.addEventListener("click", () => {
+          menu.classList.toggle("open");
         });
 
-        // 3. 点击菜单里的任意链接后，自动收起菜单
-        const links = menu.querySelectorAll('a');
-        links.forEach(link => {
-          link.addEventListener('click', () => {
-            menu.classList.remove('open');
-          });
+        // 3. 点击菜单内链接后自动收起
+        menu.querySelectorAll("a").forEach((link) => {
+          link.addEventListener("click", () => menu.classList.remove("open"));
         });
       }
 
       // 无论页面怎么加载，保证 100% 绑定成功
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupMobileMenu);
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", setupMobileMenu);
       } else {
         setupMobileMenu();
       }
-      
-      // 兼容 Astro 的无缝换页功能
-      document.addEventListener('astro:page-load', setupMobileMenu);
-      document.addEventListener('astro:after-swap', setupMobileMenu);
-    </script>
 
+      // 兼容 Astro 的无缝换页功能
+      document.addEventListener("astro:page-load", setupMobileMenu);
+      document.addEventListener("astro:after-swap", setupMobileMenu);
+    </script>
   </body>
 </html>
-
-<!-- 全局 CSS 样式区 -->
-<style is:global>
-  :root {
-    /* 1. 默认白天模式下的配色 */
-    --bg-color: #ebe8dfef;          /* 温暖柔和的浅色米白背景 */
-    --text-color: #1e293b;        /* 深色字 */
-    --text-muted: #693e36;        /* 灰字 */
-    --accent-color: #e11d48;      /* 头像框 */
-    --border-color: rgba(52, 75, 83, 0.473); /* 极细浅色边框线 */
-  }
-
-  :root[data-theme="dark"] {
-    /* 2. 暗色黑夜模式下的配色 */
-    --bg-color: #121212;          /* 深灰背景 */
-    --text-color: #e2e8f0;        /* 浅灰字 */
-    --text-muted: #64748b;        /* 灰字 */
-    --accent-color: #52609e;      /* 头像框（暗色增强） */
-    --border-color: rgba(59, 143, 58, 0.116); /* 极细深色边框线 */
-  }
-
-  html {
-    scroll-behavior: smooth;
-  }
-
-  body {
-    background-color: var(--bg-color) !important;
-    color: var(--text-color) !important;
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    position: relative;
-    overflow-x: hidden;
-
-    /* 开启 CSS 平滑色彩过渡 */
-    transition: 
-      background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-      color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-      border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* 让大块元素在切换日夜时也享受 0.4s 的平滑渐变 */
-  .header, .footer, a, span, h1, h2, h3, h4, p {
-    transition: 
-      background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-      color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-      border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* 思源宋体通用类 */
-  .serif-font {
-    font-family: "Noto Serif SC", "Source Han Serif SC", "STSong", "Songti SC", "SimSun", Georgia, serif !important;
-  }
-
-  /* 斜体美化 */
-  .italic-text {
-    font-style: italic;
-    font-family: Georgia, serif;
-  }
-
-  #particle-canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: -1;
-    pointer-events: none;
-  }
-
-  /* 顶部导航栏样式 */
-  .header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    backdrop-filter: blur(12px);
-    background-color: var(--bg-color) !important;
-    opacity: 0.95 !important;
-    border-bottom: 1px solid var(--border-color) !important;
-  }
-
-     .header {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-    background-color: var(--header-bg) !important;
-    border-bottom: 1px solid var(--border-color) !important;
-  }
-
-  .nav {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 15px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: relative;
-  }
-
-  .logo {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-color) !important;
-    text-decoration: none;
-    letter-spacing: 1px;
-    transition: color 0.3s ease;
-  }
-
-  /* 菜单包裹器 (撑满中间空间，使文字永远绝对居中) */
-  .nav-menu-wrapper {
-    display: flex;
-    flex: 1;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .nav-center {
-    display: flex;
-    gap: 25px;
-  }
-
-  .nav-center a {
-    color: var(--text-muted) !important;
-    text-decoration: none;
-    font-size: 0.95rem;
-    letter-spacing: 1px;
-    transition: color 0.2s ease;
-  }
-
-  .nav-center a:hover, .nav-center a.active {
-    color: var(--text-color) !important;
-  }
-
-  /* 右侧操作区并排显示 */
-  .nav-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px; /* 电脑端按钮间距 */
-  }
-
-  /* 电脑端隐藏汉堡按钮 */
-  .hamburger-btn {
-    display: none; 
-  }
-
-  /*       = */
-  /* 📱 手机端适配：极致小巧的折叠菜单与永久可见的主题按钮 */
-  /*       = */
-  @media (max-width: 768px) {
-    .post-sidebar {
-      display: none !important; 
-    }
-    
-    .markdown-body {
-      font-size: 14.5px !important;
-      line-height: 1.7 !important;
-    }
-
-    /* 1. 手机端显示汉堡按钮 */
-    .hamburger-btn {
-      display: block !important;
-      background: none !important;
-      border: none !important;
-      color: var(--text-color) !important;
-      cursor: pointer !important;
-      padding: 6px !important;
-      z-index: 1001 !important; 
-    }
-
-    /* 2. 右侧操作区缩紧间距 */
-    .nav-actions {
-      gap: 2px !important; 
-    }
-
-    /* 3. 初始隐藏的文字菜单 */
-    .nav-menu-wrapper {
-      position: absolute !important;
-      top: 100% !important;
-      left: 0 !important;
-      width: 100% !important;
-      flex-direction: column !important;
-      background-color: var(--bg-color) !important;
-      border-bottom: 1px solid transparent !important;
-      
-      max-height: 0 !important;
-      opacity: 0 !important;
-      overflow: hidden !important;
-      padding: 0 24px !important; 
-      pointer-events: none !important;
-      
-      transition: 
-        max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
-        opacity 0.3s ease, 
-        padding 0.3s ease !important;
-    }
-
-    /* 4. 展开时的精致面板 */
-    .nav-menu-wrapper.open {
-      max-height: 250px !important;
-      opacity: 1 !important;
-      padding: 15px 24px 20px 24px !important;
-      border-bottom-color: var(--border-color) !important;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
-      pointer-events: auto !important; 
-    }
-
-    .nav-center {
-      flex-direction: column !important;
-      align-items: flex-start !important; 
-      gap: 12px !important;
-      width: 100% !important;
-    }
-  }
-
-    /*核心修改：日夜切换按钮独立定位到右侧居中 */
- .nav-right {
-      position: absolute !important;
-      right: 24px !important;       /* 靠紧右侧边缘 */
-      top: 15px !important;         /*  距离顶部 15px，刚好与第一行的“首”字完美水平对齐 */
-      transform: none !important;   /* 取消可能导致错位的居中偏移 */
-      width: auto !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      z-index: 10 !important;
-    }
-  
-
-  /*    页脚排版自适应样式        */
-  .footer {
-    border-top: 1px solid var(--border-color) !important;
-    padding-top: 120px;
-    background-color: var(--bg-color) !important; /* 强制页脚底色跟随日夜主题 */
-  }
-
-  .footer-container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 0 24px 60px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 60px;
-  }
-
-  /* 4.1 欢迎来信区块 */
-  .footer-action-zone {
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 35px;
-  }
-
-  .action-title {
-    font-size: 1.8em;
-    letter-spacing: 0.15em;
-    color: var(--text-color) !important; /* 寄语文字颜色自适应 */
-    position: relative;
-  }
-
-  .pink-dot {
-    color: var(--accent-color);
-    font-size: 0.5em;
-    vertical-align: super;
-    margin-left: 5px;
-  }
-
-  .action-grid {
-    display: flex;
-    align-items: center;
-    gap: 40px;
-  }
-
-  .action-item {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .action-label {
-    font-size: 0.85em;
-    color: var(--text-muted) !important;
-    letter-spacing: 0.1em;
-  }
-
-  .action-sub {
-    font-size: 0.95em;
-    color: var(--text-muted) !important;
-  }
-
-  .heart-icon {
-    color: var(--accent-color);
-  }
-
-  .vertical-divider {
-    height: 30px;
-    width: 1px;
-    background-color: var(--border-color);
-  }
-
-  .action-sublinks {
-    font-size: 0.85em;
-    color: var(--text-muted);
-  }
-
-  .action-sublinks a {
-    color: var(--text-muted) !important;
-    text-decoration: none;
-    transition: color 0.2s;
-  }
-
-  .action-sublinks a:hover {
-    color: var(--text-color) !important;
-  }
-
-  .footer-line {
-    border: none;
-    height: 1px;
-    background-color: var(--border-color);
-    margin: 0;
-  }
-
-  /* 4.2 底部两端对齐排版 */
-  .footer-meta-grid {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: flex-start !important;
-    flex-wrap: wrap !important;
-    gap: 40px !important;
-  }
-
-  .meta-left {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
-
-  .brand-logo {
-    font-size: 1.5em;
-    margin: 0;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-  }
-
-  .brand-motto {
-    color: var(--text-muted);
-    font-size: 0.9em;
-    margin: 0;
-  }
-
-  .copyright {
-    font-size: 0.8em;
-/* © 2024-2026 Powered by Sayaka & Astro */
-    color: #343f4f;
-    margin: 5px 0 0 0;
-  }
-
-  .live-counter {
-    font-size: 0.8em;
-/* 披阅数 */
-    color: #2a4469a9;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .green-dot {
-
-    color: #00ffaa;
-    font-size: 0.7em;
-  }
-
-  /* 右侧分类并排链接组 */
-  .meta-right-links {
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 60px !important;
-  }
-
-  .link-group {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 10px !important;
-  }
-
-  .link-group h4 {
-    font-size: 0.85em;
-    margin: 0;
-    /* 关于 */
-    color: #31578f92;
-    font-weight: 600;
-  }
-
-  .link-group a {
-    font-size: 0.85em;
-    color: var(--text-muted) !important;
-    text-decoration: none;
-    transition: color 0.2s;
-  }
-
-  .link-group a:hover {
-    color: var(--text-color) !important;
-  }
-
-  /* 4.3 最底部自适应合规行 */
-  .footer-compliance-row {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center;
-    font-size: 0.8em;
-    color: #475569;
-  }
-
-  /* 自定义滚动条 */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: var(--bg-color);
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #333;
-    border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    /* 拉条 */
-    background: #53444456;
-  }
-
-  /* 移动端窄屏折叠自适应 */
-.header {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-    background-color: var(--header-bg) !important;
-    border-bottom: 1px solid var(--border-color) !important;
-  }
-
-  .nav {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 15px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: relative;
-  }
-
-  .logo {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-color) !important;
-    text-decoration: none;
-    letter-spacing: 1px;
-    transition: color 0.3s ease;
-  }
-
-  /* 菜单包裹器 (撑满中间空间，使文字永远绝对居中) */
-  .nav-menu-wrapper {
-    display: flex;
-    flex: 1;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .nav-center {
-    display: flex;
-    gap: 25px;
-  }
-
-  .nav-center a {
-    color: var(--text-muted) !important;
-    text-decoration: none;
-    font-size: 0.95rem;
-    letter-spacing: 1px;
-    transition: color 0.2s ease;
-  }
-
-  .nav-center a:hover, .nav-center a.active {
-    color: var(--text-color) !important;
-  }
-
-  /* 右侧操作区并排显示 */
-  .nav-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px; /* 电脑端按钮间距 */
-  }
-
-  /* 电脑端隐藏汉堡按钮 */
-  .hamburger-btn {
-    display: none; 
-  }
-
-  /*         */
-  /* 📱 手机端适配：极致小巧的折叠菜单与永久可见的主题按钮 */
-  /*         */
-  @media (max-width: 768px) {
-    .post-sidebar {
-      display: none !important; 
-    }
-    
-    .markdown-body {
-      font-size: 14.5px !important;
-      line-height: 1.7 !important;
-    }
-
-    /* 1. 手机端显示汉堡按钮 */
-    .hamburger-btn {
-      display: block !important;
-      background: none !important;
-      border: none !important;
-      color: var(--text-color) !important;
-      cursor: pointer !important;
-      padding: 6px !important;
-      z-index: 1001 !important; 
-    }
-
-    /* 2. 右侧操作区缩紧间距 */
-    .nav-actions {
-      gap: 2px !important; 
-    }
-
-    /* 3. 初始隐藏的文字菜单 */
-    .nav-menu-wrapper {
-      position: absolute !important;
-      top: 100% !important;
-      left: 0 !important;
-      width: 100% !important;
-      flex-direction: column !important;
-      background-color: var(--bg-color) !important;
-      border-bottom: 1px solid transparent !important;
-      
-      max-height: 0 !important;
-      opacity: 0 !important;
-      overflow: hidden !important;
-      padding: 0 24px !important; 
-      pointer-events: none !important;
-      
-      transition: 
-        max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
-        opacity 0.3s ease, 
-        padding 0.3s ease !important;
-    }
-
-    /* 4. 展开时的精致面板 */
-    .nav-menu-wrapper.open {
-      max-height: 250px !important;
-      opacity: 1 !important;
-      padding: 15px 24px 20px 24px !important;
-      border-bottom-color: var(--border-color) !important;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
-      pointer-events: auto !important; 
-    }
-
-    .nav-center {
-      flex-direction: column !important;
-      align-items: flex-start !important; 
-      gap: 12px !important;
-      width: 100% !important;
-    }
-  }
-  </style>
